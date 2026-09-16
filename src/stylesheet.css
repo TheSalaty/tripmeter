@@ -32,6 +32,11 @@
 .aiu-limit-reset {
   font-size: 0.9em;
 }
+.aiu-limit-forecast {
+  margin-left: 8px;
+  font-size: 0.9em;
+  font-feature-settings: "tnum";
+}
 
 .aiu-bar {
   -barlevel-height: 4px;
@@ -39,6 +44,10 @@
   -barlevel-border-color: transparent;
   -barlevel-active-border-color: transparent;
   -barlevel-overdrive-color: transparent;
+}
+
+.aiu-bar-stacked {
+  -barlevel-background-color: transparent;
 }
 
 .aiu-note-label {

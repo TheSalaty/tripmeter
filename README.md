@@ -12,6 +12,7 @@ API list prices. Data comes from local session files and stays on your machine.
 ## Features
 
 - Claude Code and Codex limits and reset times
+- Weekly forecast: where the limit lands at reset, weighted by which weekdays you actually work
 - API-equivalent cost for the past 24 hours, 7 days or 30 days
 - Cost by model, skill, subagent and MCP tool
 - Prompt-cache savings
@@ -80,6 +81,12 @@ Prices are in USD per million tokens. The longest matching model prefix wins.
 - API-equivalent cost is an estimate, not a subscription bill.
 - Claude's OAuth token is only read, never refreshed. Starting Claude Code refreshes an expired token.
 - Codex limits come from its latest local session snapshot and update when Codex runs.
+- The weekly forecast extrapolates the pace so far and weights the days left in the window by how
+  much each weekday usually takes — an idle weekend ahead counts for less than a Tuesday. Codex
+  reads that rhythm from the limit history in its own session files; for Claude, Tripmeter records
+  one figure per day as it runs, so the estimate keeps sharpening over the first couple of weeks of
+  use. Neither looks further back than 16 days, so a rhythm you have left behind stops counting.
+  It is a projection, not a promise — landing at 85–95% uses the week without overrunning it.
 
 For development notes, see [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 

@@ -1,6 +1,7 @@
 import GLib from 'gi://GLib'
 
-import { aggregateCodex } from '../lib/codex-parse.js'
+import { aggregateCodex, readLimits } from '../lib/codex-parse.js'
+import { withForecasts } from '../lib/forecast.js'
 import type { PriceTable } from '../lib/pricing.js'
 import type { Provider } from '../lib/types.js'
 import { exists, isoSeconds, onPath, readTextFile, runShell } from './io.js'
@@ -31,6 +32,20 @@ const sessionFiles = (sinceMs: number): string[] => {
   return [...paths]
 }
 
+// A forecast needs the window before this one, and Codex stamps every token_count with the limits it saw.
+const LIMIT_HISTORY_DAYS = 16
+
+const limitHistory = (nowMs: number): string[] => {
+  const root = sessionsDir()
+  if (!exists(root)) return []
+  const lines = runShell(
+    'find "$ROOT" -name "rollout-*.jsonl" -newermt "$SINCE" -print0 2>/dev/null' +
+      ' | xargs -0 -r grep -h \'"rate_limits"\' 2>/dev/null || true',
+    { ROOT: root, SINCE: isoSeconds(nowMs - LIMIT_HISTORY_DAYS * 86_400_000) },
+  )
+  return lines.split('\n').filter((line) => line.length > 0)
+}
+
 const readSession = (path: string): string[] => {
   const text = readTextFile(path)
   if (text === null) return []
@@ -44,15 +59,16 @@ const readSession = (path: string): string[] => {
     )
 }
 
-export const collectCodex = (options: { sinceMs: number; table: PriceTable }): Provider => {
+export const collectCodex = (options: { sinceMs: number; nowMs: number; table: PriceTable }): Provider => {
   const files = sessionFiles(options.sinceMs)
   const aggregate = aggregateCodex(
     files.map((path) => ({ lines: readSession(path) })),
     options,
   )
+  const limits = readLimits(limitHistory(options.nowMs))
 
   const warnings = [...aggregate.warnings]
-  if (aggregate.limits.length === 0) {
+  if (limits.limits.length === 0) {
     warnings.push('No rate-limit snapshot found — run Codex once to record one')
   }
 
@@ -63,10 +79,10 @@ export const collectCodex = (options: { sinceMs: number; table: PriceTable }): P
       authMethod: exists(GLib.build_filenamev([codexDir(), 'auth.json'])) ? 'ChatGPT' : null,
       email: null,
       organization: null,
-      plan: aggregate.planType === null ? null : capitalise(aggregate.planType),
+      plan: limits.planType === null ? null : capitalise(limits.planType),
     },
-    limits: aggregate.limits,
-    limitsAt: aggregate.limitsAt,
+    limits: withForecasts(limits.limits, { ...limits.usage, nowMs: options.nowMs }),
+    limitsAt: limits.limitsAt,
     cost: aggregate.cost,
     warnings,
   }

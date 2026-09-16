@@ -24,6 +24,15 @@ export const readJsonFile = (path: string): unknown => {
   }
 }
 
+export const writeJsonFile = (path: string, value: unknown): void => {
+  try {
+    GLib.mkdir_with_parents(GLib.path_get_dirname(path), 0o700)
+    GLib.file_set_contents(path, JSON.stringify(value))
+  } catch {
+    // A cache that cannot be written is not worth reporting.
+  }
+}
+
 export const exists = (path: string): boolean => GLib.file_test(path, GLib.FileTest.EXISTS)
 
 export const onPath = (program: string): boolean => GLib.find_program_in_path(program) !== null

@@ -22,19 +22,20 @@ const priceOverridesPath = (): string =>
 
 const main = (argv: string[]): number => {
   const windowDays = parseWindow(argv)
-  const sinceMs = windowStartMs(windowDays, Date.now())
+  const nowMs = Date.now()
+  const sinceMs = windowStartMs(windowDays, nowMs)
   const { table, warnings } = mergePrices(readJsonFile(priceOverridesPath()))
 
   const snapshot: Snapshot = {
-    generatedAt: new Date().toISOString(),
+    generatedAt: new Date(nowMs).toISOString(),
     since: new Date(sinceMs).toISOString(),
     windowDays,
     providers: [],
     warnings,
   }
 
-  if (claudeInstalled()) snapshot.providers.push(collectClaude({ sinceMs, table }))
-  if (codexInstalled()) snapshot.providers.push(collectCodex({ sinceMs, table }))
+  if (claudeInstalled()) snapshot.providers.push(collectClaude({ sinceMs, nowMs, table }))
+  if (codexInstalled()) snapshot.providers.push(collectCodex({ sinceMs, nowMs, table }))
   if (snapshot.providers.length === 0) {
     snapshot.warnings.push('Neither Claude Code nor Codex found on this machine')
   }

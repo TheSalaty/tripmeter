@@ -5,9 +5,10 @@ import St from 'gi://St'
 import * as BarLevel from 'resource:///org/gnome/shell/ui/barLevel.js'
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js'
 
-import { formatPercent, formatTime, formatUntil } from '../lib/format.js'
+import { forecastBand } from '../lib/forecast.js'
+import { formatPercent, formatResetClock, formatUntil } from '../lib/format.js'
 import { severityFor } from '../lib/snapshot.js'
-import type { Attribution, Limit, ProviderId } from '../lib/types.js'
+import type { Attribution, Limit } from '../lib/types.js'
 
 export const staticItem = (styleClass: string): PopupMenu.PopupBaseMenuItem =>
   new PopupMenu.PopupBaseMenuItem({
@@ -52,13 +53,10 @@ export const note = (text: string): PopupMenu.PopupBaseMenuItem => {
   return item
 }
 
-export const limitRow = (
-  limit: Limit,
-  nowMs: number,
-  providerId: ProviderId,
-): PopupMenu.PopupBaseMenuItem => {
+export const limitRow = (limit: Limit, nowMs: number): PopupMenu.PopupBaseMenuItem => {
   const item = staticItem('aiu-limit')
   const column = new St.BoxLayout({ vertical: true, x_expand: true, style_class: 'aiu-limit-box' })
+  const forecast = limit.forecast ?? null
 
   const heading = new St.BoxLayout({ x_expand: true })
   heading.add_child(new St.Label({ text: limit.label, style_class: 'aiu-limit-label' }))
@@ -66,33 +64,64 @@ export const limitRow = (
   heading.add_child(
     new St.Label({ text: formatPercent(limit.percent), style_class: 'aiu-limit-percent' }),
   )
+  if (forecast !== null) {
+    heading.add_child(
+      new St.Label({
+        text: `→ ${formatPercent(forecast.percent)}`,
+        style_class: `aiu-limit-forecast aiu-forecast-${forecastBand(forecast.percent)}`,
+      }),
+    )
+  }
   column.add_child(heading)
 
+  // Two stacked bars rather than one: the lower one carries the projection, the upper one paints
+  // today's usage over it with a transparent track so both segments stay visible.
+  const stack = new St.Widget({ layout_manager: new Clutter.BinLayout(), x_expand: true })
+  if (forecast !== null) {
+    const projection = new BarLevel.BarLevel({
+      style_class: `aiu-bar aiu-bar-forecast aiu-bar-forecast-${forecastBand(forecast.percent)}`,
+      x_expand: true,
+    })
+    projection.value = barValue(forecast.percent)
+    stack.add_child(projection)
+  }
   const bar = new BarLevel.BarLevel({
-    style_class: `aiu-bar aiu-bar-${severityFor(limit.percent)}`,
+    style_class:
+      `aiu-bar aiu-bar-${severityFor(limit.percent)}` + (forecast === null ? '' : ' aiu-bar-stacked'),
     x_expand: true,
   })
-  bar.value = Math.max(0, Math.min(1, limit.percent / 100))
-  column.add_child(bar)
+  bar.value = barValue(limit.percent)
+  stack.add_child(bar)
+  column.add_child(stack)
 
+  const footer = new St.BoxLayout({ x_expand: true })
   const until = formatUntil(limit.resetsAt, nowMs)
   if (until !== null) {
-    const resetTime =
-      providerId === 'claude' && limit.label === 'Session (5h)' ? formatTime(limit.resetsAt) : null
-    column.add_child(
+    const clock = formatResetClock(limit.resetsAt, nowMs)
+    footer.add_child(
       new St.Label({
         text:
           until === 'now'
             ? 'Resetting now'
-            : `Resets in ${until}${resetTime === null ? '' : ` · ${resetTime} Uhr`}`,
+            : `Resets in ${until}${clock === null ? '' : ` · ${clock}`}`,
         style_class: 'aiu-limit-reset aiu-dim',
       }),
     )
   }
+  const full = forecast === null ? null : formatUntil(forecast.fullAt, nowMs)
+  if (full !== null) {
+    footer.add_child(new St.Widget({ x_expand: true }))
+    footer.add_child(
+      new St.Label({ text: `full in ${full}`, style_class: 'aiu-limit-forecast aiu-forecast-over' }),
+    )
+  }
+  if (footer.get_n_children() > 0) column.add_child(footer)
 
   item.add_child(column)
   return item
 }
+
+const barValue = (percent: number): number => Math.max(0, Math.min(1, percent / 100))
 
 export const attributionRows = (
   title: string,

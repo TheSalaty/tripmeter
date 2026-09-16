@@ -50,23 +50,32 @@ export const parseUsage = (payload: unknown): Limit[] => {
         percent: num(limit.percent),
         resetsAt: limit.resets_at ?? null,
         isActive: limit.is_active === true,
+        windowMinutes: windowMinutes(limit.kind),
+        forecast: null,
       }))
       .sort(byClaudePriority)
   }
 
   const legacy: Limit[] = []
-  const add = (label: string, window: ApiWindow | null | undefined): void => {
+  const add = (label: string, minutes: number, window: ApiWindow | null | undefined): void => {
     if (window === undefined || window === null) return
     legacy.push({
       label,
       percent: num(window.utilization),
       resetsAt: window.resets_at ?? null,
       isActive: false,
+      windowMinutes: minutes,
+      forecast: null,
     })
   }
-  add('Session (5h)', response.five_hour)
-  add('Weekly (7 day)', response.seven_day)
+  add('Session (5h)', 300, response.five_hour)
+  add('Weekly (7 day)', 10_080, response.seven_day)
   return legacy.sort(byClaudePriority)
+}
+
+const windowMinutes = (kind: string | undefined): number | null => {
+  if (kind === 'session') return 300
+  return kind !== undefined && kind.startsWith('weekly') ? 10_080 : null
 }
 
 const byPercentDesc = (a: Limit, b: Limit): number => b.percent - a.percent

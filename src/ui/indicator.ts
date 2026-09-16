@@ -177,7 +177,7 @@ export const UsageIndicator = GObject.registerClass(
     ): void {
       menu.addMenuItem(sectionHeader(provider.name, provider.account.plan))
 
-      for (const limit of provider.limits) menu.addMenuItem(limitRow(limit, nowMs, provider.id))
+      for (const limit of provider.limits) menu.addMenuItem(limitRow(limit, nowMs))
       if (provider.limits.length === 0) {
         menu.addMenuItem(note('No usage limits reported.'))
       } else if (provider.limitsAt !== null) {

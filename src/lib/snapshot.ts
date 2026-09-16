@@ -26,18 +26,11 @@ export const panelLimits = (
 ): { provider: Provider; limit: Limit }[] => {
   const providers = source === 'both' ? snapshot.providers : snapshot.providers.filter(({ id }) => id === source)
   return providers.flatMap((provider) => {
-    const limit = provider.id === 'claude'
-      ? provider.limits.find(({ label }) => label === 'Session (5h)') ?? highestLimit(provider.limits)
-      : highestLimit(provider.limits)
-    return limit === null ? [] : [{ provider, limit }]
+    // Both providers list their shortest window first, and that is the one the panel tracks.
+    const limit = provider.limits[0]
+    return limit === undefined ? [] : [{ provider, limit }]
   })
 }
-
-const highestLimit = (limits: Limit[]): Limit | null =>
-  limits.reduce<Limit | null>(
-    (best, current) => best === null || current.percent > best.percent ? current : best,
-    null,
-  )
 
 export const totalUsd = (snapshot: Snapshot): number =>
   snapshot.providers.reduce((sum, provider) => sum + provider.cost.usd, 0)

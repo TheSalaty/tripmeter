@@ -22,3 +22,28 @@
 .aiu-icon-button:hover {
   background-color: rgba(255, 255, 255, 0.1);
 }
+
+.aiu-forecast-low {
+  color: rgba(255, 255, 255, 0.78);
+}
+.aiu-bar-forecast-low {
+  -barlevel-active-background-color: rgba(255, 255, 255, 0.5);
+}
+.aiu-forecast-target {
+  color: #8ff0a4;
+}
+.aiu-bar-forecast-target {
+  -barlevel-active-background-color: rgba(143, 240, 164, 0.45);
+}
+.aiu-forecast-high {
+  color: #ffc252;
+}
+.aiu-bar-forecast-high {
+  -barlevel-active-background-color: rgba(255, 194, 82, 0.45);
+}
+.aiu-forecast-over {
+  color: #ff938c;
+}
+.aiu-bar-forecast-over {
+  -barlevel-active-background-color: rgba(255, 147, 140, 0.5);
+}

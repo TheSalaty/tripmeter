@@ -2,8 +2,10 @@ import GLib from 'gi://GLib'
 
 import { aggregateClaude } from '../lib/claude-parse.js'
 import { parseProfile, parseUsage } from '../lib/claude-usage.js'
+import { withForecasts } from '../lib/forecast.js'
 import type { PriceTable } from '../lib/pricing.js'
 import { emptyCost, type Provider } from '../lib/types.js'
+import { recordDailyUsage } from './history.js'
 import { exists, httpGet, isoSeconds, onPath, readJsonFile, runShell } from './io.js'
 
 const API = 'https://api.anthropic.com'
@@ -72,7 +74,7 @@ const transcriptLines = (sinceMs: number): string[] => {
   return stdout.length === 0 ? [] : stdout.split('\n')
 }
 
-export const collectClaude = (options: { sinceMs: number; table: PriceTable }): Provider => {
+export const collectClaude = (options: { sinceMs: number; nowMs: number; table: PriceTable }): Provider => {
   const warnings: string[] = []
   const provider: Provider = {
     id: 'claude',
@@ -103,5 +105,14 @@ export const collectClaude = (options: { sinceMs: number; table: PriceTable }): 
   const aggregate = aggregateClaude(transcriptLines(options.sinceMs), options)
   provider.cost = aggregate.cost
   warnings.push(...aggregate.warnings)
+
+  // Claude reports no usage history of its own, so the weekday profile leans on what the
+  // transcripts cost — a proxy for the limit, but the only one on this side.
+  const history = recordDailyUsage(
+    'claude',
+    aggregate.cost.days.map(({ date, usd }) => ({ date, amount: usd })),
+    options,
+  )
+  provider.limits = withForecasts(provider.limits, { ...history, nowMs: options.nowMs })
   return provider
 }

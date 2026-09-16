@@ -9,6 +9,13 @@ export type Limit = {
   percent: number
   resetsAt: string | null
   isActive: boolean
+  windowMinutes: number | null
+  forecast: Forecast | null
+}
+
+export type Forecast = {
+  percent: number
+  fullAt: string | null
 }
 
 export type TokenTotals = {

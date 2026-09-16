@@ -37,6 +37,14 @@ export const formatTime = (isoTimestamp: string | null): string | null => {
   })
 }
 
+export const formatResetClock = (isoTimestamp: string | null, nowMs: number): string | null => {
+  const time = formatTime(isoTimestamp)
+  if (time === null || isoTimestamp === null) return null
+  const target = Date.parse(isoTimestamp)
+  if (target - nowMs < 86_400_000) return `${time} Uhr`
+  return `${new Date(target).toLocaleDateString([], { weekday: 'short' })} ${time} Uhr`
+}
+
 export const formatAgo = (isoTimestamp: string | null, nowMs: number): string | null => {
   if (isoTimestamp === null) return null
   const then = Date.parse(isoTimestamp)

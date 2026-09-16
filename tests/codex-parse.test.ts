@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
-import { aggregateCodex, windowLabel } from '../src/lib/codex-parse.js'
+import { aggregateCodex, readLimits, windowLabel } from '../src/lib/codex-parse.js'
 import { DEFAULT_PRICES } from '../src/lib/pricing.js'
 
 const options = { sinceMs: Date.parse('2026-08-12T00:00:00Z'), table: DEFAULT_PRICES }
@@ -12,7 +12,10 @@ const turnContext = (model: string): string =>
 const tokenCount = (
   at: string,
   totals: { input: number; cached: number; write?: number; output: number; reasoning?: number },
-  rateLimits?: { primary?: { used_percent: number; window_minutes: number; resets_at: number } },
+  rateLimits?: {
+    primary?: { used_percent: number; window_minutes: number; resets_at: number }
+    secondary?: { used_percent: number; window_minutes: number; resets_at: number }
+  },
 ): string =>
   JSON.stringify({
     timestamp: at,
@@ -108,19 +111,47 @@ test('each session accumulates from zero, so two sessions do not cancel out', ()
 })
 
 test('the newest rate-limit snapshot wins even when an older session is listed later', () => {
-  const limitsAt = (at: string, percent: number): string =>
+  const snapshot = (at: string, percent: number): string =>
     tokenCount(at, { input: 10, cached: 0, output: 1 }, {
       primary: { used_percent: percent, window_minutes: 10_080, resets_at: 1_787_031_017 },
     })
 
-  const { limits, limitsAt: recordedAt, planType } = aggregateCodex(
-    [{ lines: [limitsAt('2026-08-12T12:00:00Z', 61)] }, { lines: [limitsAt('2026-08-12T09:00:00Z', 20)] }],
-    options,
-  )
+  const { limits, limitsAt, planType } = readLimits([
+    snapshot('2026-08-12T12:00:00Z', 61),
+    snapshot('2026-08-12T09:00:00Z', 20),
+  ])
   assert.equal(limits[0]?.percent, 61)
   assert.equal(limits[0]?.label, 'Weekly (7 day)')
-  assert.equal(recordedAt, '2026-08-12T12:00:00Z')
+  assert.equal(limitsAt, '2026-08-12T12:00:00Z')
   assert.equal(planType, 'plus')
+})
+
+test('the session window heads the list however much fuller the weekly one is', () => {
+  const { limits } = readLimits([
+    tokenCount('2026-08-12T12:00:00Z', { input: 10, cached: 0, output: 1 }, {
+      primary: { used_percent: 12, window_minutes: 300, resets_at: 1_787_031_017 },
+      secondary: { used_percent: 80, window_minutes: 10_080, resets_at: 1_787_431_017 },
+    }),
+  ])
+  assert.deepEqual(limits.map(({ label }) => label), ['Session (5h)', 'Weekly (7 day)'])
+})
+
+test('a credits snapshot carrying no windows leaves the last real one standing', () => {
+  const { limits, limitsAt } = readLimits([
+    tokenCount('2026-08-12T12:00:00Z', { input: 10, cached: 0, output: 1 }, {
+      primary: { used_percent: 61, window_minutes: 10_080, resets_at: 1_787_031_017 },
+    }),
+    JSON.stringify({
+      timestamp: '2026-08-12T13:00:00Z',
+      type: 'event_msg',
+      payload: {
+        type: 'token_count',
+        rate_limits: { limit_id: 'premium', primary: null, secondary: null, plan_type: 'plus' },
+      },
+    }),
+  ])
+  assert.equal(limits[0]?.percent, 61)
+  assert.equal(limitsAt, '2026-08-12T12:00:00Z')
 })
 
 test('window minutes map to the labels the CLIs use', () => {

@@ -46,6 +46,14 @@ Two details the parsers exist to get right:
 - Codex reports token usage as a **running total per session** and repeats the same snapshot across
   events. Spend is therefore the rise in that total, not the sum of the per-request field.
 
+The weekly forecast divides the current usage by the share of the window that has already elapsed —
+but that share is weighted by a weekday profile, so a window with an idle weekend still ahead of it
+projects lower than a flat extrapolation. Codex builds the profile from the rise in the percentage
+its own rollouts record per day, which is what the limit actually measures; Claude has no such
+history, so the collector records what its transcripts cost per day as it runs. Both keep 16 days —
+two of every weekday — and both are shrunk towards a flat week and clamped, because a fortnight of
+history is a rhythm, not a law.
+
 Skills and subagents are independent characteristics of the same spend, not a partition: their
 shares overlap and do not sum to 100%. Claude Code stamps every assistant record with the skill,
 subagent and MCP tool it ran under, so these are read from the transcript rather than guessed.
