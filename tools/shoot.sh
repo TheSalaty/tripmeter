@@ -21,6 +21,9 @@ export XDG_DATA_HOME="$SANDBOX/data"
 export XDG_CACHE_HOME="$SANDBOX/cache"
 export XDG_STATE_HOME="$SANDBOX/state"
 
+# dconf writes reach the real session bus even here, so settings go to a throwaway keyfile instead.
+export GSETTINGS_BACKEND=keyfile
+
 gsettings set org.gnome.shell welcome-dialog-last-shown-version '99.0' 2>/dev/null || true
 
 gnome-shell --headless --virtual-monitor "${AIU_MONITOR:-1400x1000}" >/tmp/aiu-shell.log 2>&1 &
