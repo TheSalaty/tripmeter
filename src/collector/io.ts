@@ -74,12 +74,20 @@ export const httpGet = (url: string, headers: Record<string, string>): HttpResul
   try {
     const bytes = session.send_and_read(message, null)
     const data = bytes.get_data()
-    return {
-      status: message.get_status(),
-      body: data === null ? '' : decoder.decode(data),
-    }
+    return { status: statusOf(message), body: data === null ? '' : decoder.decode(data) }
   } catch {
     return { status: 0, body: '' }
+  }
+}
+
+// GJS marshals the status through Soup.Status, and a code outside that enum — 429, above all —
+// throws on the way out instead of arriving as a number.
+const statusOf = (message: Soup.Message): number => {
+  try {
+    return message.get_status()
+  } catch (error) {
+    const code = /\b(\d{3})\b/.exec(String(error))
+    return code === null ? 0 : Number(code[1])
   }
 }
 

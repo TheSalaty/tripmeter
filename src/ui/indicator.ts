@@ -182,9 +182,9 @@ export const UsageIndicator = GObject.registerClass(
         menu.addMenuItem(note('No usage limits reported.'))
       } else if (provider.limitsAt !== null) {
         const ago = formatAgo(provider.limitsAt, nowMs)
-        menu.addMenuItem(
-          note(`Limits from the last recorded session${ago === null ? '' : ` · ${ago}`}.`),
-        )
+        const source =
+          provider.id === 'claude' ? 'the last successful read' : 'the last recorded session'
+        menu.addMenuItem(note(`Limits from ${source}${ago === null ? '' : ` · ${ago}`}.`))
       }
 
       const cost = provider.cost

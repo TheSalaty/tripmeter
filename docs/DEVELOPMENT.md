@@ -54,6 +54,11 @@ history, so the collector records what its transcripts cost per day as it runs. 
 two of every weekday — and both are shrunk towards a flat week and clamped, because a fortnight of
 history is a rhythm, not a law.
 
+Claude's two OAuth endpoints rate-limit hard — a second call moments after the first returns 429 —
+so both reads are cached under `$XDG_STATE_HOME/tripmeter`, and a refused read falls back to the
+last good one instead of blanking the section. GJS cannot even marshal that 429: `Soup.Status` has
+no such member, so `get_status()` throws and the code is recovered from the error text.
+
 Skills and subagents are independent characteristics of the same spend, not a partition: their
 shares overlap and do not sum to 100%. Claude Code stamps every assistant record with the skill,
 subagent and MCP tool it ran under, so these are read from the transcript rather than guessed.
