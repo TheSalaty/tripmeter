@@ -12,6 +12,13 @@ test('longest matching prefix wins so a dated snapshot keeps its family price', 
   assert.equal(priceFor('gpt-5.6-terra')?.input, 2)
   assert.equal(priceFor('gpt-5.6-luna')?.output, 1.2)
   assert.equal(priceFor('gpt-5.6')?.output, 30)
+  assert.deepEqual(priceFor('gpt-6-sol'), {
+    input: 2,
+    output: 10,
+    cacheReadFactor: 0.1,
+    cacheWriteFactor: 1.25,
+    cacheWrite1hFactor: 1,
+  })
   assert.equal(priceFor('some-unknown-model'), null)
 })
 

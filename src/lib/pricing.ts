@@ -14,11 +14,11 @@ const anthropic = (input: number, output: number): ModelPrice => ({
   cacheWrite1hFactor: 2,
 })
 
-const openai = (input: number, output: number): ModelPrice => ({
+const openai = (input: number, output: number, cacheWriteFactor = 1): ModelPrice => ({
   input,
   output,
   cacheReadFactor: 0.1,
-  cacheWriteFactor: 1,
+  cacheWriteFactor,
   cacheWrite1hFactor: 1,
 })
 
@@ -29,6 +29,7 @@ export const DEFAULT_PRICES: Record<string, ModelPrice> = {
   'claude-sonnet': anthropic(3, 15),
   'claude-sonnet-5': anthropic(2, 10),
   'claude-haiku': anthropic(1, 5),
+  'gpt-6-sol': openai(2, 10, 1.25),
   'gpt-5.6': openai(5, 30),
   'gpt-5.6-terra': openai(2, 12),
   'gpt-5.6-luna': openai(0.2, 1.2),
