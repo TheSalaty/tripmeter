@@ -34,5 +34,10 @@
       <summary>Which providers' limits the panel shows</summary>
       <description>Show Claude, Codex, or both when the panel mode is Limit percentage.</description>
     </key>
+    <key name="providers" type="s">
+      <default>'[]'</default>
+      <summary>Providers</summary>
+      <description>JSON list of usage sources: [{"id", "kind": "claude"|"codex", "name", "color": "#rrggbb"|null, "home": config directory or "" for the default, "enabled"}]. An empty list collects every installed CLI from its default directory.</description>
+    </key>
   </schema>
 </schemalist>

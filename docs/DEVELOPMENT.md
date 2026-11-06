@@ -19,8 +19,12 @@ tools/           headless screenshot harness (see below)
 
 | | Limits | Cost |
 |---|---|---|
-| **Claude Code** | `GET /api/oauth/usage` with the OAuth token in `~/.claude/.credentials.json` | `~/.claude/projects/**/*.jsonl` |
-| **Codex** | the rate-limit snapshot in the newest `~/.codex/sessions/**/rollout-*.jsonl` | the same rollout files |
+| **Claude Code** | `GET /api/oauth/usage` with the OAuth token in `<config dir>/.credentials.json` | `<config dir>/projects/**/*.jsonl` |
+| **Codex** | the rate-limit snapshot in the newest `<codex home>/sessions/**/rollout-*.jsonl` | the same rollout files |
+
+The config dir and Codex home default to `~/.claude` and `~/.codex`; each entry in the `providers`
+setting can point at another one, and the extension passes the list to the collector as
+`--providers '<json>'`.
 
 The only outbound request is the one Claude Code itself makes to read your limits, with the token
 Claude Code already stored. Refreshing that token here would rotate the refresh token out from
@@ -55,7 +59,7 @@ two of every weekday — and both are shrunk towards a flat week and clamped, be
 history is a rhythm, not a law.
 
 Claude's two OAuth endpoints rate-limit hard — a second call moments after the first returns 429 —
-so both reads are cached under `$XDG_STATE_HOME/tripmeter`, and a refused read falls back to the
+so both reads are cached under `$XDG_STATE_HOME/tripmeter` (one file per account), and a refused read falls back to the
 last good one instead of blanking the section. GJS cannot even marshal that 429: `Soup.Status` has
 no such member, so `get_status()` throws and the code is recovered from the error text.
 
@@ -76,8 +80,11 @@ Mutter's RemoteDesktop interface and captures frames from its ScreenCast PipeWir
 ```sh
 make install
 ./tools/shoot.sh --click 1095,12:menu --click 1030,308:expanded
+AIU_PROVIDERS='[{"kind":"claude","name":"Work","color":"#3584e4"}]' ./tools/shoot.sh --click 1095,12:menu
+# AIU_SNAPSHOT=path/to/snapshot.json seeds the cache, so the menu has limits even when
+# api.anthropic.com is rate-limiting (every run makes one real usage request per account)
 # frames land in /tmp/aiu-shots/
-# docs/menu.png is the menu frame cropped to 560x690+840+0
+# docs/menu.png is the menu frame cropped to 440x950+858+0
 ```
 
 GNOME 49+ refuses `org.gnome.Shell.Screenshot` for headless sessions and no longer exposes an

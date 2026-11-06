@@ -4,20 +4,14 @@ import { aggregateClaude } from '../lib/claude-parse.js'
 import { parseProfile, parseUsage } from '../lib/claude-usage.js'
 import { withForecasts } from '../lib/forecast.js'
 import type { PriceTable } from '../lib/pricing.js'
+import type { ProviderConfig } from '../lib/providers.js'
 import { emptyCost, type Account, type Limit, type Provider } from '../lib/types.js'
+import { resolveHome } from './detect.js'
 import { recordDailyUsage } from './history.js'
-import { exists, httpGet, isoSeconds, onPath, readJsonFile, runShell, writeJsonFile } from './io.js'
+import { exists, httpGet, isoSeconds, readJsonFile, runShell, writeJsonFile } from './io.js'
 
 const API = 'https://api.anthropic.com'
 const OAUTH_BETA = 'oauth-2025-04-20'
-
-const home = (): string => GLib.get_home_dir()
-const claudeDir = (): string => GLib.build_filenamev([home(), '.claude'])
-const projectsDir = (): string => GLib.build_filenamev([claudeDir(), 'projects'])
-const credentialsPath = (): string => GLib.build_filenamev([claudeDir(), '.credentials.json'])
-
-export const claudeInstalled = (): boolean =>
-  exists(claudeDir()) || onPath('claude')
 
 type Credentials = {
   claudeAiOauth?: {
@@ -32,7 +26,8 @@ type Token = {
   expiresAtMs: number | null
 }
 
-const readCredentials = (): Credentials | null => readJsonFile(credentialsPath()) as Credentials | null
+const readCredentials = (dir: string): Credentials | null =>
+  readJsonFile(GLib.build_filenamev([dir, '.credentials.json'])) as Credentials | null
 
 const readToken = (payload: Credentials | null): Token | null => {
   const oauth = payload?.claudeAiOauth
@@ -83,10 +78,15 @@ type UsageCache = {
   profile?: CacheEntry<Account>
 }
 
-const cachePath = (): string =>
-  GLib.build_filenamev([GLib.get_user_state_dir(), 'tripmeter', 'claude-usage.json'])
+// One cache per account; the default account keeps the file name it had before accounts existed.
+const cachePath = (id: string): string =>
+  GLib.build_filenamev([
+    GLib.get_user_state_dir(),
+    'tripmeter',
+    id === 'claude' ? 'claude-usage.json' : `claude-usage-${id}.json`,
+  ])
 
-const readCache = (): UsageCache => (readJsonFile(cachePath()) as UsageCache | null) ?? {}
+const readCache = (id: string): UsageCache => (readJsonFile(cachePath(id)) as UsageCache | null) ?? {}
 
 const ageOf = <T>(entry: CacheEntry<T> | undefined, nowMs: number): number => {
   const at = entry === undefined ? NaN : Date.parse(entry.fetchedAt)
@@ -96,8 +96,8 @@ const ageOf = <T>(entry: CacheEntry<T> | undefined, nowMs: number): number => {
 const reason = (status: number): string =>
   status === 0 ? 'no response' : `HTTP ${status}`
 
-const transcriptLines = (sinceMs: number): string[] => {
-  const root = projectsDir()
+const transcriptLines = (dir: string, sinceMs: number): string[] => {
+  const root = GLib.build_filenamev([dir, 'projects'])
   if (!exists(root)) return []
   const stdout = runShell(
     'find "$ROOT" -name "*.jsonl" -newermt "$SINCE" -print0 2>/dev/null' +
@@ -108,11 +108,17 @@ const transcriptLines = (sinceMs: number): string[] => {
   return stdout.length === 0 ? [] : stdout.split('\n')
 }
 
-export const collectClaude = (options: { sinceMs: number; nowMs: number; table: PriceTable }): Provider => {
+export const collectClaude = (
+  config: ProviderConfig,
+  options: { sinceMs: number; nowMs: number; table: PriceTable },
+): Provider => {
+  const dir = resolveHome(config)
   const warnings: string[] = []
   const provider: Provider = {
-    id: 'claude',
-    name: 'Claude Code',
+    id: config.id,
+    kind: 'claude',
+    name: config.name,
+    color: config.color,
     account: { authMethod: null, email: null, organization: null, plan: null },
     limits: [],
     limitsAt: null,
@@ -120,14 +126,14 @@ export const collectClaude = (options: { sinceMs: number; nowMs: number; table: 
     warnings,
   }
 
-  const credentials = readCredentials()
+  const credentials = readCredentials(dir)
   const token = readToken(credentials)
   if (token === null) {
-    warnings.push('Not signed in — no credentials in ~/.claude/.credentials.json')
+    warnings.push(`Not signed in — no credentials in ${dir}/.credentials.json`)
   } else if (token.expiresAtMs !== null && token.expiresAtMs <= options.nowMs) {
     warnings.push('Access token expired — start Claude Code once to refresh it')
   } else {
-    const cache = readCache()
+    const cache = readCache(config.id)
     const subscription = readSubscription(credentials)
 
     if (ageOf(cache.usage, options.nowMs) < USAGE_MAX_AGE_MS && cache.usage !== undefined) {
@@ -160,17 +166,17 @@ export const collectClaude = (options: { sinceMs: number; nowMs: number; table: 
       }
     }
 
-    writeJsonFile(cachePath(), cache)
+    writeJsonFile(cachePath(config.id), cache)
   }
 
-  const aggregate = aggregateClaude(transcriptLines(options.sinceMs), options)
+  const aggregate = aggregateClaude(transcriptLines(dir, options.sinceMs), options)
   provider.cost = aggregate.cost
   warnings.push(...aggregate.warnings)
 
   // Claude reports no usage history of its own, so the weekday profile leans on what the
   // transcripts cost — a proxy for the limit, but the only one on this side.
   const history = recordDailyUsage(
-    'claude',
+    config.id,
     aggregate.cost.days.map(({ date, usd }) => ({ date, amount: usd })),
     options,
   )

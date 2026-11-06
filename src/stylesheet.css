@@ -6,48 +6,12 @@
   margin-left: 9px;
 }
 
-.aiu-section-header {
-  padding-top: 10px;
-}
-.aiu-section-title {
-  font-weight: bold;
-}
-.aiu-section-trailing {
-  opacity: 0.88;
-}
 .aiu-dim {
   opacity: 0.82;
 }
 
 .aiu-kv-value {
   font-feature-settings: "tnum";
-}
-
-.aiu-limit-box {
-  spacing: 3px;
-}
-.aiu-limit-percent {
-  font-feature-settings: "tnum";
-}
-.aiu-limit-reset {
-  font-size: 0.9em;
-}
-.aiu-limit-forecast {
-  margin-left: 8px;
-  font-size: 0.9em;
-  font-feature-settings: "tnum";
-}
-
-.aiu-bar {
-  -barlevel-height: 4px;
-  -barlevel-active-background-color: -st-accent-color;
-  -barlevel-border-color: transparent;
-  -barlevel-active-border-color: transparent;
-  -barlevel-overdrive-color: transparent;
-}
-
-.aiu-bar-stacked {
-  -barlevel-background-color: transparent;
 }
 
 .aiu-note-label {
@@ -78,4 +42,90 @@
 .aiu-icon-button {
   padding: 4px;
   border-radius: 6px;
+}
+
+.aiu-card-item {
+  padding: 4px 10px;
+}
+.aiu-card {
+  min-width: 340px;
+  border-radius: 14px;
+  padding: 12px 14px 6px;
+  spacing: 6px;
+}
+.aiu-card-header {
+  spacing: 10px;
+  padding-bottom: 4px;
+}
+.aiu-tile {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+}
+.aiu-tile-icon {
+  color: #ffffff;
+}
+.aiu-card-name {
+  font-weight: bold;
+}
+.aiu-card-sub,
+.aiu-card-note {
+  font-size: 0.86em;
+  opacity: 0.68;
+}
+.aiu-card-note {
+  padding-top: 2px;
+}
+.aiu-card-big {
+  font-size: 1.85em;
+  font-weight: 800;
+  font-feature-settings: "tnum";
+}
+.aiu-card-forecast {
+  margin-left: 6px;
+  font-size: 0.86em;
+  font-feature-settings: "tnum";
+}
+.aiu-card-pace {
+  font-size: 0.86em;
+  font-weight: 600;
+}
+.aiu-card-limit {
+  spacing: 1px;
+  padding-top: 6px;
+}
+.aiu-card-limit-label {
+  font-size: 0.93em;
+}
+.aiu-card-limit-percent,
+.aiu-card-usd,
+.aiu-detail-value {
+  font-feature-settings: "tnum";
+}
+.aiu-card-limit-percent {
+  font-size: 0.93em;
+  font-weight: bold;
+}
+.aiu-card-cost {
+  margin-top: 4px;
+  padding: 7px 0;
+  border-radius: 8px;
+}
+.aiu-card-usd {
+  font-weight: bold;
+  margin-left: 8px;
+}
+.aiu-card-chevron {
+  margin-left: 6px;
+  opacity: 0.68;
+}
+.aiu-card-details {
+  padding: 2px 0 8px;
+  spacing: 3px;
+}
+.aiu-detail-row {
+  font-size: 0.93em;
+}
+.aiu-detail-gap {
+  height: 6px;
 }

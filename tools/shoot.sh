@@ -36,6 +36,14 @@ if ! kill -0 $SHELL_PID 2>/dev/null || grep -q "already exists on bus" /tmp/aiu-
   exit 1
 fi
 
+if [ -n "${AIU_SNAPSHOT:-}" ]; then
+  mkdir -p "$SANDBOX/cache/tripmeter"
+  cp "$AIU_SNAPSHOT" "$SANDBOX/cache/tripmeter/snapshot.json"
+fi
+if [ -n "${AIU_PROVIDERS:-}" ]; then
+  gsettings --schemadir "$SANDBOX/data/gnome-shell/extensions/$UUID/schemas" \
+    set org.gnome.shell.extensions.tripmeter providers "$AIU_PROVIDERS"
+fi
 gnome-extensions enable "$UUID" || echo "could not enable $UUID"
 sleep 12
 

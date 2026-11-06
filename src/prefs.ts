@@ -5,6 +5,8 @@ import Gtk from 'gi://Gtk'
 
 import { ExtensionPreferences } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js'
 
+import { providersGroup } from './prefs-providers.js'
+
 export default class TripmeterPreferences extends ExtensionPreferences {
   override fillPreferencesWindow(window: Adw.PreferencesWindow): Promise<void> {
     const settings = this.getSettings()
@@ -30,14 +32,15 @@ export default class TripmeterPreferences extends ExtensionPreferences {
     const sources = ['both', 'claude', 'codex']
     const panelSource = new Adw.ComboRow({
       title: 'Limit percentage shows',
-      subtitle: 'Choose Claude, Codex, or both in the panel',
-      model: Gtk.StringList.new(['Both', 'Claude', 'Codex']),
+      subtitle: 'Which enabled providers get a percentage in the panel',
+      model: Gtk.StringList.new(['All', 'Claude accounts', 'Codex']),
     })
     panelSource.selected = Math.max(0, sources.indexOf(settings.get_string('panel-limit-source')))
     panelSource.connect('notify::selected', () => {
       settings.set_string('panel-limit-source', sources[panelSource.selected] ?? 'both')
     })
     panel.add(panelSource)
+
 
     const data = new Adw.PreferencesGroup({
       title: 'Collection',
@@ -65,6 +68,10 @@ export default class TripmeterPreferences extends ExtensionPreferences {
     })
     settings.bind('refresh-interval', interval, 'value', Gio.SettingsBindFlags.DEFAULT)
     data.add(interval)
+
+    const providersPage = new Adw.PreferencesPage({ title: 'Providers', icon_name: 'system-users-symbolic' })
+    providersPage.add(providersGroup(settings))
+    window.add(providersPage)
 
     const pricing = new Adw.PreferencesGroup({
       title: 'Pricing',

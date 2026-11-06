@@ -13,6 +13,8 @@ API list prices. Data comes from local session files and stays on your machine.
 
 - Claude Code and Codex limits and reset times
 - Weekly forecast: where the limit lands at reset, weighted by which weekdays you actually work
+- Pace marker on every limit: how much an even spread would have used by now
+- Several Claude Code accounts side by side, each with its own name and colour
 - API-equivalent cost for the past 24 hours, 7 days or 30 days
 - Cost by model, skill, subagent and MCP tool
 - Prompt-cache savings
@@ -62,7 +64,28 @@ Open the settings from the gear in the menu or run:
 gnome-extensions prefs tripmeter@thesalaty.github.io
 ```
 
-You can change the panel display, visible providers, cost window and refresh interval.
+You can change the panel display, cost window and refresh interval.
+
+### Providers
+
+The **Providers** tab lists every source Tripmeter reads: one entry per Claude Code account
+(one per config directory, as set with `CLAUDE_CONFIG_DIR`) and per Codex home (`CODEX_HOME`).
+Each entry has a name, a colour for its panel icon and menu section, and a switch, so you can hide
+Codex while it stays installed. **Import from T3 Code** copies the names, accent colours,
+directories and switches of the Claude and Codex providers configured in T3 Code.
+
+From the command line, the same list is a JSON setting:
+
+```sh
+dconf write /org/gnome/shell/extensions/tripmeter/providers "'[
+  {\"kind\": \"claude\", \"name\": \"Work\", \"color\": \"#3584e4\"},
+  {\"kind\": \"claude\", \"name\": \"Private\", \"color\": \"#00ba0f\", \"home\": \"~/.claude-private\"},
+  {\"kind\": \"codex\", \"enabled\": false}
+]'"
+```
+
+An empty `home` means the CLI's default directory. `dconf reset` on the key goes back to showing
+every installed CLI.
 
 Model prices are defined in [`src/lib/pricing.ts`](src/lib/pricing.ts). To override them, create
 `~/.config/tripmeter/pricing.json`:

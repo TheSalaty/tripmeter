@@ -47,6 +47,7 @@ export default class TripmeterExtension extends Extension {
       settings.connect('changed::panel-mode', apply),
       settings.connect('changed::panel-limit-source', apply),
       settings.connect('changed::refresh-interval', () => this.restartTimer()),
+      settings.connect('changed::providers', () => this.refresh(true)),
     ]
 
     this.restartTimer()
@@ -96,7 +97,7 @@ export default class TripmeterExtension extends Extension {
 
     this.lastRunMs = Date.now()
     indicator.setBusy(true)
-    runner.run(this.windowDays(), (result) => {
+    runner.run(this.windowDays(), this.settings?.get_string('providers') ?? '[]', (result) => {
       indicator.setBusy(false)
       if (result.ok) {
         indicator.setSnapshot(result.snapshot)

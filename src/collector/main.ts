@@ -4,8 +4,9 @@ import System from 'system'
 import { mergePrices } from '../lib/pricing.js'
 import { windowStartMs } from '../lib/snapshot.js'
 import type { Snapshot, WindowDays } from '../lib/types.js'
-import { claudeInstalled, collectClaude } from './claude.js'
-import { codexInstalled, collectCodex } from './codex.js'
+import { collectClaude } from './claude.js'
+import { collectCodex } from './codex.js'
+import { effectiveProviderConfigs } from './detect.js'
 import { readJsonFile } from './io.js'
 
 const CONFIG_DIR = 'tripmeter'
@@ -15,6 +16,11 @@ const parseWindow = (argv: string[]): WindowDays => {
   const raw = index >= 0 ? Number(argv[index + 1]) : NaN
   if (raw === 1 || raw === 7 || raw === 30) return raw
   return 7
+}
+
+const argValue = (argv: string[], flag: string): string => {
+  const index = argv.indexOf(flag)
+  return index >= 0 ? argv[index + 1] ?? '' : ''
 }
 
 const priceOverridesPath = (): string =>
@@ -34,10 +40,18 @@ const main = (argv: string[]): number => {
     warnings,
   }
 
-  if (claudeInstalled()) snapshot.providers.push(collectClaude({ sinceMs, nowMs, table }))
-  if (codexInstalled()) snapshot.providers.push(collectCodex({ sinceMs, nowMs, table }))
-  if (snapshot.providers.length === 0) {
+  const configs = effectiveProviderConfigs(argValue(argv, '--providers'))
+  for (const config of configs) {
+    if (!config.enabled) continue
+    const options = { sinceMs, nowMs, table }
+    snapshot.providers.push(
+      config.kind === 'claude' ? collectClaude(config, options) : collectCodex(config, options),
+    )
+  }
+  if (configs.length === 0) {
     snapshot.warnings.push('Neither Claude Code nor Codex found on this machine')
+  } else if (snapshot.providers.length === 0) {
+    snapshot.warnings.push('Every provider is switched off in the settings')
   }
 
   print(JSON.stringify(snapshot))

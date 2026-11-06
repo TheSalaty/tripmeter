@@ -1,6 +1,6 @@
-export type ProviderId = 'claude' | 'codex'
+export type ProviderKind = 'claude' | 'codex'
 
-export type PanelLimitSource = ProviderId | 'both'
+export type PanelLimitSource = ProviderKind | 'both'
 
 export type WindowDays = 1 | 7 | 30
 
@@ -63,8 +63,10 @@ export type Account = {
 }
 
 export type Provider = {
-  id: ProviderId
+  id: string
+  kind: ProviderKind
   name: string
+  color: string | null
   account: Account
   limits: Limit[]
   limitsAt: string | null

@@ -12,7 +12,7 @@ test('the panel shows the session limit instead of the higher weekly one', () =>
   const snapshot: Snapshot = {
     generatedAt: '', since: '', windowDays: 7, warnings: [],
     providers: [{
-      id: 'claude', name: 'Claude Code', limitsAt: null, warnings: [], cost: emptyCost(),
+      id: 'claude', kind: 'claude', name: 'Claude Code', color: null, limitsAt: null, warnings: [], cost: emptyCost(),
       account: { authMethod: null, email: null, organization: null, plan: null },
       limits: [limit('Session (5h)', 70, 300), limit('Weekly (7 day)', 76, 10_080)],
     }],

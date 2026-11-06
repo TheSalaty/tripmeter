@@ -19,21 +19,14 @@ import {
 } from '../lib/format.js'
 import { panelLimits, severityFor, totalUsd } from '../lib/snapshot.js'
 import {
-  totalTokens,
   type PanelLimitSource,
   type Provider,
+  type ProviderKind,
   type Snapshot,
   type WindowDays,
 } from '../lib/types.js'
-import {
-  attributionRows,
-  choiceRow,
-  keyValue,
-  limitRow,
-  note,
-  sectionHeader,
-  staticItem,
-} from './rows.js'
+import { detailGap, detailRow, providerCard } from './card.js'
+import { choiceRow, note, staticItem } from './rows.js'
 
 const WINDOW_CHOICES: readonly { value: WindowDays; label: string }[] = [
   { value: 1, label: '24 h' },
@@ -42,15 +35,6 @@ const WINDOW_CHOICES: readonly { value: WindowDays; label: string }[] = [
 ]
 
 const ICONS_URI = import.meta.url.replace('/ui/indicator.js', '/icons/')
-
-// The shell slides a submenu open unless it is tall enough to need a scrollbar,
-// so Claude would animate and Codex would not. Drop it for both.
-const unanimatedSubmenu = (item: PopupMenu.PopupSubMenuMenuItem): void => {
-  item.setSubmenuShown = (open: boolean): void => {
-    if (open) item.menu.open(BoxPointer.PopupAnimation.NONE)
-    else item.menu.close(BoxPointer.PopupAnimation.NONE)
-  }
-}
 
 export type IndicatorHandlers = {
   onRefresh: () => void
@@ -70,11 +54,9 @@ type State = {
 export const UsageIndicator = GObject.registerClass(
   class UsageIndicator extends PanelMenu.Button {
     private label!: St.Label
-    private claudeIcon!: St.Icon
-    private claudeLabel!: St.Label
-    private codexIcon!: St.Icon
-    private codexLabel!: St.Label
+    private limitsBox!: St.BoxLayout
     private handlers!: IndicatorHandlers
+    private expanded = new Set<string>()
     private state: State = {
       snapshot: null,
       windowDays: 7,
@@ -89,14 +71,8 @@ export const UsageIndicator = GObject.registerClass(
       this.handlers = handlers
 
       const box = new St.BoxLayout({ style_class: 'panel-status-menu-box' })
-      this.claudeIcon = this.providerIcon('claude')
-      box.add_child(this.claudeIcon)
-      this.claudeLabel = this.providerLabel()
-      box.add_child(this.claudeLabel)
-      this.codexIcon = this.providerIcon('codex')
-      box.add_child(this.codexIcon)
-      this.codexLabel = this.providerLabel()
-      box.add_child(this.codexLabel)
+      this.limitsBox = new St.BoxLayout()
+      box.add_child(this.limitsBox)
       this.label = new St.Label({
         text: '…',
         y_align: Clutter.ActorAlign.CENTER,
@@ -150,10 +126,7 @@ export const UsageIndicator = GObject.registerClass(
         menu.addMenuItem(note(this.state.error ?? 'Collecting usage…'))
       } else {
         for (const provider of snapshot.providers) {
-          this.addProvider(menu, provider, snapshot, nowMs)
-        }
-        if (snapshot.providers.length === 0) {
-          menu.addMenuItem(note('Neither Claude Code nor Codex found on this machine.'))
+          this.addProvider(menu, provider, nowMs)
         }
         for (const warning of snapshot.warnings) menu.addMenuItem(note(warning))
       }
@@ -169,67 +142,48 @@ export const UsageIndicator = GObject.registerClass(
       menu.addMenuItem(this.footer(snapshot, nowMs))
     }
 
-    private addProvider(
-      menu: PopupMenu.PopupMenu,
-      provider: Provider,
-      snapshot: Snapshot,
-      nowMs: number,
-    ): void {
-      menu.addMenuItem(sectionHeader(provider.name, provider.account.plan))
-
-      for (const limit of provider.limits) menu.addMenuItem(limitRow(limit, nowMs))
-      if (provider.limits.length === 0) {
-        menu.addMenuItem(note('No usage limits reported.'))
-      } else if (provider.limitsAt !== null) {
-        const ago = formatAgo(provider.limitsAt, nowMs)
-        const source =
-          provider.id === 'claude' ? 'the last successful read' : 'the last recorded session'
-        menu.addMenuItem(note(`Limits from ${source}${ago === null ? '' : ` · ${ago}`}.`))
-      }
-
-      const cost = provider.cost
-      const tokens = totalTokens(cost.tokens)
-      const summary = new PopupMenu.PopupSubMenuMenuItem(
-        `${formatUsd(cost.usd)} · ${formatTokens(tokens)} tokens`,
-        false,
+    private addProvider(menu: PopupMenu.PopupMenu, provider: Provider, nowMs: number): void {
+      menu.addMenuItem(
+        providerCard(provider, {
+          nowMs,
+          expanded: this.expanded.has(provider.id),
+          onToggleDetails: () => {
+            if (this.expanded.has(provider.id)) this.expanded.delete(provider.id)
+            else this.expanded.add(provider.id)
+            this.rebuild()
+          },
+          details: (box) => this.addCostDetails(box, provider),
+        }),
       )
-      unanimatedSubmenu(summary)
-      this.addCostDetails(summary.menu, provider)
-      menu.addMenuItem(summary)
-
-      for (const warning of provider.warnings) menu.addMenuItem(note(warning))
     }
 
-    private addCostDetails(submenu: PopupMenu.PopupMenuBase, provider: Provider): void {
+    private addCostDetails(box: St.BoxLayout, provider: Provider): void {
       const cost = provider.cost
       const savings = cost.usdWithoutCache - cost.usd
 
-      submenu.addMenuItem(keyValue('At API rates', formatUsd(cost.usd)))
-      submenu.addMenuItem(keyValue('Saved by caching', formatUsd(savings)))
+      box.add_child(detailRow('At API rates', formatUsd(cost.usd)))
+      box.add_child(detailRow('Saved by caching', formatUsd(savings)))
       if (cost.activeDays > 0) {
-        submenu.addMenuItem(
-          keyValue('Per active day', `${formatUsd(cost.usd / cost.activeDays)} · ${cost.activeDays}d`),
+        box.add_child(
+          detailRow('Per active day', `${formatUsd(cost.usd / cost.activeDays)} · ${cost.activeDays}d`),
         )
       }
-      submenu.addMenuItem(
-        keyValue(
+      box.add_child(
+        detailRow(
           'Tokens',
           `${formatTokens(cost.tokens.cacheRead)} cached · ` +
             `${formatTokens(cost.tokens.uncachedInput + cost.tokens.cacheWrite)} fresh · ` +
             `${formatTokens(cost.tokens.output)} out`,
-          { dim: true },
+          true,
         ),
       )
 
       if (cost.models.length > 0) {
-        submenu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem())
-        submenu.addMenuItem(keyValue('Model', 'Cost · share', { dim: true }))
+        box.add_child(detailGap())
+        box.add_child(detailRow('Model', 'Cost · share', true))
         for (const model of cost.models.slice(0, 6)) {
-          submenu.addMenuItem(
-            keyValue(
-              `    ${model.model}`,
-              `${formatUsd(model.usd)} · ${formatShare(model.usd, cost.usd)}`,
-            ),
+          box.add_child(
+            detailRow(`    ${model.model}`, `${formatUsd(model.usd)} · ${formatShare(model.usd, cost.usd)}`),
           )
         }
       }
@@ -240,25 +194,28 @@ export const UsageIndicator = GObject.registerClass(
         ['MCP tools', cost.mcpTools],
       ]
       for (const [title, entries] of breakdowns) {
-        const rows = attributionRows(title, entries, cost.usd, 5)
+        if (entries.length === 0 || cost.usd <= 0) continue
+        const rows = entries
+          .slice(0, 5)
+          .map((entry) => [entry.name, Math.round((entry.usd / cost.usd) * 100)] as const)
+          .filter(([, share]) => share >= 1)
         if (rows.length === 0) continue
-        submenu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem())
-        for (const row of rows) submenu.addMenuItem(row)
+        box.add_child(detailGap())
+        box.add_child(detailRow(title, '% of cost', true))
+        for (const [name, share] of rows) box.add_child(detailRow(`    ${name}`, `${share}%`))
       }
 
       const busiest = [...cost.days].sort((a, b) => b.usd - a.usd).slice(0, 3)
       if (busiest.length > 1) {
-        submenu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem())
-        submenu.addMenuItem(keyValue('Busiest days', 'Cost', { dim: true }))
-        for (const day of busiest) {
-          submenu.addMenuItem(keyValue(`    ${formatDate(day.date)}`, formatUsd(day.usd)))
-        }
+        box.add_child(detailGap())
+        box.add_child(detailRow('Busiest days', 'Cost', true))
+        for (const day of busiest) box.add_child(detailRow(`    ${formatDate(day.date)}`, formatUsd(day.usd)))
       }
 
       const identity = provider.account.email ?? provider.account.authMethod
       if (identity !== null) {
-        submenu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem())
-        submenu.addMenuItem(keyValue('Account', identity, { dim: true }))
+        box.add_child(detailGap())
+        box.add_child(detailRow('Account', identity, true))
       }
     }
 
@@ -299,64 +256,42 @@ export const UsageIndicator = GObject.registerClass(
     }
 
     private updatePanel(): void {
+      this.limitsBox.destroy_all_children()
       const snapshot = this.state.snapshot
       if (this.state.panelMode === 'icon' || snapshot === null) {
-        this.setProviderLabelsVisible(false, false)
         this.label.visible = this.state.panelMode === 'icon'
         this.label.text = '…'
         return
       }
 
       if (this.state.panelMode === 'cost') {
-        this.setProviderLabelsVisible(false, false)
         this.label.text = formatUsd(totalUsd(snapshot))
         this.label.visible = true
         this.setLabelSeverity('normal')
         return
       }
 
-      const limits = panelLimits(snapshot, this.state.panelLimitSource)
-      if (limits.length === 0) {
-        this.setProviderLabelsVisible(false, false)
-        this.label.visible = false
-        return
-      }
-      const claude = limits.find(({ provider }) => provider.id === 'claude')
-      const codex = limits.find(({ provider }) => provider.id === 'codex')
-      this.setProviderLabelsVisible(claude !== undefined, codex !== undefined)
-      if (claude !== undefined) this.setProviderLabel(this.claudeLabel, claude.limit.percent)
-      if (codex !== undefined) this.setProviderLabel(this.codexLabel, codex.limit.percent)
       this.label.visible = false
+      for (const { provider, limit } of panelLimits(snapshot, this.state.panelLimitSource)) {
+        this.limitsBox.add_child(this.providerIcon(provider.kind, provider.color))
+        const label = new St.Label({
+          text: formatPercent(limit.percent),
+          y_align: Clutter.ActorAlign.CENTER,
+          style_class: `aiu-panel-label aiu-panel-${severityFor(limit.percent)}`,
+        })
+        this.limitsBox.add_child(label)
+      }
     }
 
-    private providerIcon(provider: 'claude' | 'codex'): St.Icon {
-      const icon = new St.Icon({
+    private providerIcon(kind: ProviderKind, color: string | null): St.Icon {
+      return new St.Icon({
         gicon: new Gio.FileIcon({
-          file: Gio.File.new_for_uri(`${ICONS_URI}${provider}-symbolic.svg`),
+          file: Gio.File.new_for_uri(`${ICONS_URI}${kind}-symbolic.svg`),
         }),
         icon_size: 16,
         style_class: 'aiu-provider-icon',
+        style: color === null ? null : `color: ${color};`,
       })
-      icon.visible = false
-      return icon
-    }
-
-    private providerLabel(): St.Label {
-      const label = new St.Label({ y_align: Clutter.ActorAlign.CENTER, style_class: 'aiu-panel-label' })
-      label.visible = false
-      return label
-    }
-
-    private setProviderLabelsVisible(claude: boolean, codex: boolean): void {
-      this.claudeIcon.visible = claude
-      this.claudeLabel.visible = claude
-      this.codexIcon.visible = codex
-      this.codexLabel.visible = codex
-    }
-
-    private setProviderLabel(label: St.Label, percent: number): void {
-      label.text = formatPercent(percent)
-      label.style_class = `aiu-panel-label aiu-panel-${severityFor(percent)}`
     }
 
     private setLabelSeverity(severity: string): void {

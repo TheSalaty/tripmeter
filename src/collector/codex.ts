@@ -3,17 +3,15 @@ import GLib from 'gi://GLib'
 import { aggregateCodex, readLimits } from '../lib/codex-parse.js'
 import { withForecasts } from '../lib/forecast.js'
 import type { PriceTable } from '../lib/pricing.js'
+import type { ProviderConfig } from '../lib/providers.js'
 import type { Provider } from '../lib/types.js'
-import { exists, isoSeconds, onPath, readTextFile, runShell } from './io.js'
+import { resolveHome } from './detect.js'
+import { exists, isoSeconds, readTextFile, runShell } from './io.js'
 
-const home = (): string => GLib.get_home_dir()
-const codexDir = (): string => GLib.build_filenamev([home(), '.codex'])
-const sessionsDir = (): string => GLib.build_filenamev([codexDir(), 'sessions'])
+const sessionsDir = (dir: string): string => GLib.build_filenamev([dir, 'sessions'])
 
-export const codexInstalled = (): boolean => exists(codexDir()) || onPath('codex')
-
-const sessionFiles = (sinceMs: number): string[] => {
-  const root = sessionsDir()
+const sessionFiles = (dir: string, sinceMs: number): string[] => {
+  const root = sessionsDir(dir)
   if (!exists(root)) return []
   const recent = runShell(
     'find "$ROOT" -name "rollout-*.jsonl" -newermt "$SINCE" 2>/dev/null || true',
@@ -35,8 +33,8 @@ const sessionFiles = (sinceMs: number): string[] => {
 // A forecast needs the window before this one, and Codex stamps every token_count with the limits it saw.
 const LIMIT_HISTORY_DAYS = 16
 
-const limitHistory = (nowMs: number): string[] => {
-  const root = sessionsDir()
+const limitHistory = (dir: string, nowMs: number): string[] => {
+  const root = sessionsDir(dir)
   if (!exists(root)) return []
   const lines = runShell(
     'find "$ROOT" -name "rollout-*.jsonl" -newermt "$SINCE" -print0 2>/dev/null' +
@@ -59,13 +57,17 @@ const readSession = (path: string): string[] => {
     )
 }
 
-export const collectCodex = (options: { sinceMs: number; nowMs: number; table: PriceTable }): Provider => {
-  const files = sessionFiles(options.sinceMs)
+export const collectCodex = (
+  config: ProviderConfig,
+  options: { sinceMs: number; nowMs: number; table: PriceTable },
+): Provider => {
+  const dir = resolveHome(config)
+  const files = sessionFiles(dir, options.sinceMs)
   const aggregate = aggregateCodex(
     files.map((path) => ({ lines: readSession(path) })),
     options,
   )
-  const limits = readLimits(limitHistory(options.nowMs))
+  const limits = readLimits(limitHistory(dir, options.nowMs))
 
   const warnings = [...aggregate.warnings]
   if (limits.limits.length === 0) {
@@ -73,10 +75,12 @@ export const collectCodex = (options: { sinceMs: number; nowMs: number; table: P
   }
 
   return {
-    id: 'codex',
-    name: 'Codex',
+    id: config.id,
+    kind: 'codex',
+    name: config.name,
+    color: config.color,
     account: {
-      authMethod: exists(GLib.build_filenamev([codexDir(), 'auth.json'])) ? 'ChatGPT' : null,
+      authMethod: exists(GLib.build_filenamev([dir, 'auth.json'])) ? 'ChatGPT' : null,
       email: null,
       organization: null,
       plan: limits.planType === null ? null : capitalise(limits.planType),

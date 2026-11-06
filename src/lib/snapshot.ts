@@ -24,7 +24,7 @@ export const panelLimits = (
   snapshot: Snapshot,
   source: PanelLimitSource,
 ): { provider: Provider; limit: Limit }[] => {
-  const providers = source === 'both' ? snapshot.providers : snapshot.providers.filter(({ id }) => id === source)
+  const providers = source === 'both' ? snapshot.providers : snapshot.providers.filter(({ kind }) => kind === source)
   return providers.flatMap((provider) => {
     // Both providers list their shortest window first, and that is the one the panel tracks.
     const limit = provider.limits[0]
@@ -51,6 +51,10 @@ export const isSnapshot = (value: unknown): value is Snapshot => {
     typeof candidate.since === 'string' &&
     typeof candidate.windowDays === 'number' &&
     Array.isArray(candidate.providers) &&
+    candidate.providers.every(
+      (provider: unknown) =>
+        provider !== null && typeof provider === 'object' && typeof (provider as Provider).kind === 'string',
+    ) &&
     Array.isArray(candidate.warnings)
   )
 }

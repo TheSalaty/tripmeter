@@ -19,7 +19,7 @@ export class CollectorRunner {
     return GLib.find_program_in_path('gjs') !== null
   }
 
-  run(windowDays: WindowDays, onDone: (result: RunResult) => void): void {
+  run(windowDays: WindowDays, providers: string, onDone: (result: RunResult) => void): void {
     this.cancel()
     if (!this.available) {
       onDone({ ok: false, error: 'gjs not found on PATH' })
@@ -32,7 +32,7 @@ export class CollectorRunner {
     let process: Gio.Subprocess
     try {
       process = Gio.Subprocess.new(
-        ['gjs', '-m', this.scriptPath, '--window', String(windowDays)],
+        ['gjs', '-m', this.scriptPath, '--window', String(windowDays), '--providers', providers],
         Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE,
       )
     } catch (error) {
