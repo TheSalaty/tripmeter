@@ -36,6 +36,10 @@ if ! kill -0 $SHELL_PID 2>/dev/null || grep -q "already exists on bus" /tmp/aiu-
   exit 1
 fi
 
+if [ -n "${AIU_STATE:-}" ]; then
+  mkdir -p "$SANDBOX/state/tripmeter"
+  cp -r "$AIU_STATE/." "$SANDBOX/state/tripmeter/"
+fi
 if [ -n "${AIU_SNAPSHOT:-}" ]; then
   mkdir -p "$SANDBOX/cache/tripmeter"
   cp "$AIU_SNAPSHOT" "$SANDBOX/cache/tripmeter/snapshot.json"

@@ -81,8 +81,9 @@ Mutter's RemoteDesktop interface and captures frames from its ScreenCast PipeWir
 make install
 ./tools/shoot.sh --click 1095,12:menu --click 1030,308:expanded
 AIU_PROVIDERS='[{"kind":"claude","name":"Work","color":"#3584e4"}]' ./tools/shoot.sh --click 1095,12:menu
-# AIU_SNAPSHOT=path/to/snapshot.json seeds the cache, so the menu has limits even when
-# api.anthropic.com is rate-limiting (every run makes one real usage request per account)
+# AIU_SNAPSHOT=path/to/snapshot.json seeds the cached snapshot, and AIU_STATE=dir is copied into
+# $XDG_STATE_HOME/tripmeter: a fresh claude-usage*.json there means no request to api.anthropic.com
+# (without it, every run reads each account's limits once)
 # frames land in /tmp/aiu-shots/
 # docs/menu.png is the menu frame cropped to 440x950+858+0
 ```
