@@ -1,7 +1,7 @@
 # Maintainer: TheSalaty <j.ullrich@creedle.io>
 _uuid=tripmeter@thesalaty.github.io
 pkgname=tripmeter
-pkgver=1.2.1
+pkgver=1.3.0
 pkgrel=1
 pkgdesc="Tripmeter Usage: AI usage tracker and Verbrauch monitor for Claude Code and OpenAI Codex — Claude/Codex usage and limits, token use, 5-hour/weekly quotas, resets and API cost"
 arch=('any')
@@ -13,7 +13,7 @@ install=tripmeter.install
 source=("$pkgname-$pkgver.tar.gz::$url/archive/v$pkgver.tar.gz"
         'tripmeter-remind-enable'
         'tripmeter-remind-enable.desktop')
-sha256sums=('375aba92834a9228ac786e6ffc3b66241fac6d93fbd22920c8bd78bcb4b53117'
+sha256sums=('7716148b777a507ccc9a073afb9f8ac3c7c677fadaf4653c93d7d5c80aebac02'
             '5cc0e150ce5d4caaea997337540bb57ce6b7965cf69a8611b5ff8f3fbcd78a10'
             'adec82ff284b8f1e5dd047fd39d150676e0c7e55146b37259d7c2d6368994ed3')
 
