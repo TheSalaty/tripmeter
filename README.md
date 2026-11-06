@@ -1,43 +1,58 @@
-# Tripmeter Usage
+# Tripmeter
 
-A GNOME Shell extension for checking Claude Code and Codex usage from the top panel.
-
-It shows your current limits and resets, plus an estimate of what your token usage would cost at
-API list prices. Data comes from local session files and stays on your machine.
+Claude Code and Codex limits in the GNOME top bar, with a marker that tells you whether you are
+burning through the week or leaving quota on the table.
 
 <p align="center">
-  <img src="docs/menu.png" alt="Tripmeter menu" width="420">
+  <img src="docs/panel.png" alt="Tripmeter in the top bar: one icon and percentage per account" width="300">
 </p>
 
-## Features
+<p align="center">
+  <img src="docs/menu.png" alt="Tripmeter menu with one card per account" width="420">
+</p>
 
-- Claude Code and Codex limits and reset times
-- Weekly forecast: where the limit lands at reset, weighted by which weekdays you actually work
-- Pace marker on every limit: how much an even spread would have used by now
-- Several Claude Code accounts side by side, each with its own name and colour
-- API-equivalent cost for the past 24 hours, 7 days or 30 days
-- Cost by model, skill, subagent and MCP tool
-- Prompt-cache savings
-- Panel display with limit, cost or icon only
+## What it shows
 
-Tripmeter works with either CLI on its own or with both. It supports GNOME Shell 49 and 50.
+**Every limit, per account.** Claude's 5-hour session, the weekly limit and the per-model weekly
+limits; whatever windows Codex's plan has. One card per account, in the colour you gave it, and
+one icon and percentage per account in the top bar.
+
+**Pace.** The white tick on each bar is where an even spread would be right now. Left of it, you
+have room to use more. Right of it, the line under the bar turns amber and tells you when the limit
+runs out at the current rate, e.g. `13% over pace · runs out at 21:18`.
+
+**Where the week lands.** Weekly bars carry a paler segment and a `→ 112%`: the figure at reset if
+your pace holds. It is weighted by your own weekday rhythm, so a quiet weekend ahead counts for
+less than a Tuesday. 85–95% at reset is the sweet spot.
+
+**What it would have cost.** Click the cost line on a card to see your tokens priced at API list
+rates for the last 24 hours, 7 days or 30 days: by model, skill, subagent and MCP tool, plus what
+prompt caching saved.
+
+<p align="center">
+  <img src="docs/details.png" alt="A card with its cost details folded out" width="380">
+</p>
+
+**Several Claude accounts.** Work and personal logins live in separate config directories
+(`CLAUDE_CONFIG_DIR`). Tripmeter reads each one as its own account. You can switch Codex off without
+uninstalling it.
+
+Nothing leaves your machine. Tripmeter reads the session files the CLIs already write. Its only
+network request is the usage call Claude Code itself makes, sent with the token Claude Code already
+stored. You don't need an API key or a helper CLI, and there is no telemetry.
+
+GNOME Shell 49 and 50. Works with either CLI on its own or with both.
 
 ## Install
 
-Download the zip from the [latest release](https://github.com/TheSalaty/tripmeter/releases/latest),
-then run:
+Download the zip from the [latest release](https://github.com/TheSalaty/tripmeter/releases/latest)
+and install it:
 
 ```sh
-cd ~/Downloads
+gnome-extensions install --force ~/Downloads/tripmeter@thesalaty.github.io.shell-extension.zip
 ```
 
-Then run:
-
-```sh
-gnome-extensions install --force tripmeter@thesalaty.github.io.shell-extension.zip
-```
-
-Log out and back in, then enable the extension:
+Log out and back in (GNOME on Wayland only loads new extensions at login), then:
 
 ```sh
 gnome-extensions enable tripmeter@thesalaty.github.io
@@ -45,7 +60,7 @@ gnome-extensions enable tripmeter@thesalaty.github.io
 
 ### From source
 
-Requires Node.js 20 or newer.
+Needs Node.js 20 or newer.
 
 ```sh
 git clone https://github.com/TheSalaty/tripmeter.git
@@ -54,41 +69,41 @@ npm install
 make install
 ```
 
-Log out and back in before enabling the extension. Run `make pack` to build an installable zip.
+`make pack` builds the installable zip.
 
-## Settings
+## Accounts
 
-Open the settings from the gear in the menu or run:
+Open the settings from the gear in the menu, or with
+`gnome-extensions prefs tripmeter@thesalaty.github.io`.
 
-```sh
-gnome-extensions prefs tripmeter@thesalaty.github.io
-```
+<p align="center">
+  <img src="docs/settings.png" alt="The Providers tab: one row per account with a colour, a name and a switch" width="520">
+</p>
 
-You can change the panel display, cost window and refresh interval.
+The **Providers** tab has one row per Claude Code config directory or Codex home. Each row has a
+name, a colour and an on/off switch. If you use T3 Code, **Import from T3 Code**
+copies the names, accent colours and directories of the providers you set up there.
 
-### Providers
-
-The **Providers** tab lists every source Tripmeter reads: one entry per Claude Code account
-(one per config directory, as set with `CLAUDE_CONFIG_DIR`) and per Codex home (`CODEX_HOME`).
-Each entry has a name, a colour for its panel icon and menu section, and a switch, so you can hide
-Codex while it stays installed. **Import from T3 Code** copies the names, accent colours,
-directories and switches of the Claude and Codex providers configured in T3 Code.
-
-From the command line, the same list is a JSON setting:
+The same list is a JSON setting, so you can script it:
 
 ```sh
 dconf write /org/gnome/shell/extensions/tripmeter/providers "'[
   {\"kind\": \"claude\", \"name\": \"Work\", \"color\": \"#3584e4\"},
-  {\"kind\": \"claude\", \"name\": \"Private\", \"color\": \"#00ba0f\", \"home\": \"~/.claude-private\"},
+  {\"kind\": \"claude\", \"name\": \"Personal\", \"color\": \"#2ec27e\", \"home\": \"~/.claude-personal\"},
   {\"kind\": \"codex\", \"enabled\": false}
 ]'"
 ```
 
-An empty `home` means the CLI's default directory. `dconf reset` on the key goes back to showing
-every installed CLI.
+An empty `home` means the CLI's default directory. `dconf reset` on the key goes back to every
+installed CLI.
 
-Model prices are defined in [`src/lib/pricing.ts`](src/lib/pricing.ts). To override them, create
-`~/.config/tripmeter/pricing.json`:
+The **General** tab sets what the top bar shows (limits, cost or just the icon), the cost window
+and the refresh interval.
+
+## Prices
+
+The price list is in [`src/lib/pricing.ts`](src/lib/pricing.ts). To override it, create
+`~/.config/tripmeter/pricing.json` with prices in USD per million tokens:
 
 ```json
 {
@@ -97,22 +112,23 @@ Model prices are defined in [`src/lib/pricing.ts`](src/lib/pricing.ts). To overr
 }
 ```
 
-Prices are in USD per million tokens. The longest matching model prefix wins.
+The longest matching model prefix wins.
 
-## Notes
+## Fine print
 
-- API-equivalent cost is an estimate, not a subscription bill.
-- Claude's OAuth token is only read, never refreshed. Starting Claude Code refreshes an expired token.
-- Codex limits come from its latest local session snapshot and update when Codex runs.
-- The weekly forecast extrapolates the pace so far and weights the days left in the window by how
-  much each weekday usually takes — an idle weekend ahead counts for less than a Tuesday. Codex
-  reads that rhythm from the limit history in its own session files; for Claude, Tripmeter records
-  one figure per day as it runs, so the estimate keeps sharpening over the first couple of weeks of
-  use. Neither looks further back than 16 days, so a rhythm you have left behind stops counting.
-  It is a projection, not a promise — landing at 85–95% uses the week without overrunning it.
+- The cost is what the same tokens would cost on the API. A subscription is flat-rate, so it is not
+  a bill.
+- Claude's OAuth token is only read, never refreshed. Refreshing it here would log Claude Code out.
+  If it has expired, start Claude Code once.
+- api.anthropic.com rate-limits the usage endpoint hard. Tripmeter caches each account's limits for
+  a few minutes and keeps the last good reading if a request is refused.
+- Codex limits come from its most recent session file and only change when Codex runs.
+- The weekly forecast looks back at most 16 days. Codex's comes from the limit history in its
+  session files. Claude publishes no history, so Tripmeter records a daily figure as it runs, and
+  the forecast gets better over the first two weeks. It is a projection, not a promise.
 
-For development notes, see [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
+Development notes are in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 
 ## License
 
-[MIT](LICENSE). Tripmeter is not affiliated with Anthropic or OpenAI.
+[MIT](LICENSE). Not affiliated with Anthropic or OpenAI.
