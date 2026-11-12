@@ -129,9 +129,9 @@ export const collectClaude = (
   const credentials = readCredentials(dir)
   const token = readToken(credentials)
   if (token === null) {
-    warnings.push(`Not signed in — no credentials in ${dir}/.credentials.json`)
+    warnings.push(`Not signed in: no credentials in ${dir}/.credentials.json`)
   } else if (token.expiresAtMs !== null && token.expiresAtMs <= options.nowMs) {
-    warnings.push('Access token expired — start Claude Code once to refresh it')
+    warnings.push('Access token expired: start Claude Code once to refresh it')
   } else {
     const cache = readCache(config.id)
     const subscription = readSubscription(credentials)
@@ -146,9 +146,9 @@ export const collectClaude = (
       } else if (cache.usage !== undefined) {
         provider.limits = cache.usage.value
         provider.limitsAt = cache.usage.fetchedAt
-        warnings.push(`api.anthropic.com declined the limits read (${reason(usage.status)})`)
+        warnings.push(`Could not refresh limits from api.anthropic.com (${reason(usage.status)})`)
       } else {
-        warnings.push(`Could not read usage limits from api.anthropic.com (${reason(usage.status)})`)
+        warnings.push(`Could not read limits from api.anthropic.com (${reason(usage.status)})`)
       }
     }
 

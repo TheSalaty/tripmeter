@@ -11,6 +11,7 @@ import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js'
 import {
   formatAgo,
   formatDate,
+  displayPercent,
   formatPercent,
   formatRange,
   formatShare,
@@ -19,6 +20,7 @@ import {
 } from '../lib/format.js'
 import { panelLimits, severityFor, totalUsd } from '../lib/snapshot.js'
 import {
+  type LimitDisplay,
   type PanelLimitSource,
   type Provider,
   type ProviderKind,
@@ -47,6 +49,7 @@ type State = {
   windowDays: WindowDays
   panelMode: string
   panelLimitSource: PanelLimitSource
+  limitDisplay: LimitDisplay
   busy: boolean
   error: string | null
 }
@@ -62,6 +65,7 @@ export const UsageIndicator = GObject.registerClass(
       windowDays: 7,
       panelMode: 'percent',
       panelLimitSource: 'both',
+      limitDisplay: 'left',
       busy: false,
       error: null,
     }
@@ -97,10 +101,16 @@ export const UsageIndicator = GObject.registerClass(
       this.rebuild()
     }
 
-    setSettings(windowDays: WindowDays, panelMode: string, panelLimitSource: PanelLimitSource): void {
+    setSettings(
+      windowDays: WindowDays,
+      panelMode: string,
+      panelLimitSource: PanelLimitSource,
+      limitDisplay: LimitDisplay,
+    ): void {
       this.state.windowDays = windowDays
       this.state.panelMode = panelMode
       this.state.panelLimitSource = panelLimitSource
+      this.state.limitDisplay = limitDisplay
       this.rebuild()
     }
 
@@ -146,6 +156,7 @@ export const UsageIndicator = GObject.registerClass(
       menu.addMenuItem(
         providerCard(provider, {
           nowMs,
+          display: this.state.limitDisplay,
           expanded: this.expanded.has(provider.id),
           onToggleDetails: () => {
             if (this.expanded.has(provider.id)) this.expanded.delete(provider.id)
@@ -232,6 +243,7 @@ export const UsageIndicator = GObject.registerClass(
 
       const refresh = new St.Button({
         style_class: 'aiu-icon-button',
+        accessible_name: 'Refresh',
         child: new St.Icon({ icon_name: 'view-refresh-symbolic', icon_size: 16 }),
         can_focus: true,
       })
@@ -243,6 +255,7 @@ export const UsageIndicator = GObject.registerClass(
 
       const settings = new St.Button({
         style_class: 'aiu-icon-button',
+        accessible_name: 'Settings',
         child: new St.Icon({ icon_name: 'emblem-system-symbolic', icon_size: 16 }),
         can_focus: true,
       })
@@ -275,7 +288,7 @@ export const UsageIndicator = GObject.registerClass(
       for (const { provider, limit } of panelLimits(snapshot, this.state.panelLimitSource)) {
         this.limitsBox.add_child(this.providerIcon(provider.kind, provider.color))
         const label = new St.Label({
-          text: formatPercent(limit.percent),
+          text: formatPercent(Math.max(0, displayPercent(limit.percent, this.state.limitDisplay))),
           y_align: Clutter.ActorAlign.CENTER,
           style_class: `aiu-panel-label aiu-panel-${severityFor(limit.percent)}`,
         })

@@ -12,7 +12,12 @@ export const formatTokens = (tokens: number): string => {
   return `${(tokens / 1_000_000_000).toFixed(2)}B`
 }
 
-export const formatPercent = (percent: number): string => `${Math.round(percent)}%`
+export const formatPercent = (percent: number): string => `${Math.round(percent)}%`.replace('-', '−')
+
+// A used percentage as the chosen display counts it. A forecast past 100% used goes
+// negative when counting what is left: that much short of the reset.
+export const displayPercent = (used: number, display: 'left' | 'used'): number =>
+  display === 'left' ? 100 - used : used
 
 export const formatShare = (part: number, whole: number): string =>
   whole <= 0 ? '0%' : `${Math.round((part / whole) * 100)}%`
@@ -41,8 +46,8 @@ export const formatResetClock = (isoTimestamp: string | null, nowMs: number): st
   const time = formatTime(isoTimestamp)
   if (time === null || isoTimestamp === null) return null
   const target = Date.parse(isoTimestamp)
-  if (target - nowMs < 86_400_000) return `${time} Uhr`
-  return `${new Date(target).toLocaleDateString([], { weekday: 'short' })} ${time} Uhr`
+  if (target - nowMs < 86_400_000) return `at ${time}`
+  return `${new Date(target).toLocaleDateString('en', { weekday: 'short' })} ${time}`
 }
 
 export const formatAgo = (isoTimestamp: string | null, nowMs: number): string | null => {

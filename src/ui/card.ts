@@ -7,10 +7,10 @@ import St from 'gi://St'
 import type * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js'
 
 import { forecastBand } from '../lib/forecast.js'
-import { formatAgo, formatPercent, formatResetClock, formatTokens, formatUntil, formatUsd } from '../lib/format.js'
+import { displayPercent, formatAgo, formatPercent, formatResetClock, formatTokens, formatUntil, formatUsd } from '../lib/format.js'
 import { paceFor, type Pace } from '../lib/pace.js'
 import { severityFor } from '../lib/snapshot.js'
-import { totalTokens, type Limit, type Provider, type ProviderKind } from '../lib/types.js'
+import { totalTokens, type Limit, type LimitDisplay, type Provider, type ProviderKind } from '../lib/types.js'
 import { staticItem } from './rows.js'
 
 const ICONS_URI = import.meta.url.replace('/ui/card.js', '/icons/')
@@ -45,16 +45,26 @@ const roundedRect = (cr: Cairo, x: number, y: number, w: number, h: number, r: n
   cr.closePath()
 }
 
-// A level bar with a tick where an even spread of the limit would be by now.
+// A level bar with a tick where an even spread of the limit would be by now. Counting what is
+// left, the bar drains instead of filling and the tick moves down with it.
 const paceBar = (
-  percent: number,
-  expected: number | null,
-  projected: number | null,
+  limit: Limit,
+  pace: Pace | null,
+  display: LimitDisplay,
   color: string,
   thickness: number,
 ): St.DrawingArea => {
+  const fraction = (used: number): number => Math.max(0, Math.min(1, displayPercent(used, display) / 100))
+  const level = fraction(limit.percent)
+  const expected = pace === null ? null : fraction(pace.expected)
+  const forecast = limit.forecast ?? null
+  const projected = forecast !== null && forecast.percent > limit.percent ? fraction(forecast.percent) : null
   const tick = 4
-  const area = new St.DrawingArea({ x_expand: true, height: thickness + tick * 2, style_class: 'aiu-pace-bar' })
+  const area = new St.DrawingArea({
+    x_expand: true,
+    height: thickness + tick * 2,
+    style_class: forecast === null ? 'aiu-pace-bar' : `aiu-pace-bar aiu-landing-${forecastBand(forecast.percent)}`,
+  })
   area.connect('repaint', () => {
     const cr = area.get_context() as unknown as Cairo
     const [width] = area.get_surface_size()
@@ -66,22 +76,32 @@ const paceBar = (
     roundedRect(cr, 0, y, width, thickness, thickness / 2)
     cr.fill()
 
-    // Where the window lands at reset if the pace holds, paler, under today's figure.
-    if (projected !== null && projected > percent) {
-      cr.setSourceRGBA(r, g, b, 0.35)
-      roundedRect(cr, 0, y, Math.max(0, Math.min(1, projected / 100)) * width, thickness, thickness / 2)
+    // The solid bar always ends at today's figure. Counting up, where the window lands at
+    // reset is a paler stretch past it; counting down, it is a gap cut into the bar.
+    const fill = (from: number, to: number, alpha: number): void => {
+      if (to <= from) return
+      cr.setSourceRGBA(r, g, b, alpha)
+      roundedRect(cr, from, y, Math.max(to - from, thickness), thickness, thickness / 2)
       cr.fill()
     }
-
-    const filled = Math.max(0, Math.min(1, percent / 100)) * width
-    if (filled > 0) {
-      cr.setSourceRGBA(r, g, b, 1)
-      roundedRect(cr, 0, y, Math.max(filled, thickness), thickness, thickness / 2)
+    const end = level * width
+    const landing = projected === null ? null : projected * width
+    const gap = 3
+    if (landing !== null && landing > end) fill(0, landing, 0.35)
+    if (landing !== null && landing >= thickness && end - landing >= thickness + gap) {
+      // What the forecast leaves unused takes the forecast figure's colour.
+      const [found, unused] = area.get_theme_node().lookup_color('-aiu-landing-color', false)
+      if (found) cr.setSourceRGBA(unused.red / 255, unused.green / 255, unused.blue / 255, unused.alpha / 255)
+      else cr.setSourceRGBA(r, g, b, 1)
+      roundedRect(cr, 0, y, landing, thickness, thickness / 2)
       cr.fill()
+      fill(landing + gap, end, 1)
+    } else {
+      fill(0, end, 1)
     }
 
     if (expected !== null) {
-      const x = Math.max(1, Math.min(width - 3, (expected / 100) * width - 1))
+      const x = Math.max(1, Math.min(width - 3, expected * width - 1))
       cr.setSourceRGBA(fg.red / 255, fg.green / 255, fg.blue / 255, 0.9)
       roundedRect(cr, x, 0, 2, thickness + tick * 2, 1)
       cr.fill()
@@ -110,7 +130,7 @@ const when = (ms: number, nowMs: number): string => {
   const date = new Date(ms)
   const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
   if (ms - nowMs < 20 * 3_600_000) return `at ${time}`
-  return `${date.toLocaleDateString([], { weekday: 'short' })} ${time}`
+  return `${date.toLocaleDateString('en', { weekday: 'short' })} ${time}`
 }
 
 // The weekly forecast weighs the weekdays still ahead, so when it has a date it beats the
@@ -128,9 +148,11 @@ export const paceText = (pace: Pace, limit: Limit, nowMs: number): string => {
 }
 
 const paceStyle = (pace: Pace | null, percent: number): string | null => {
+  // Colour means trouble: a limit that is filling up but under pace stays neutral.
   const severity = severityFor(percent)
-  if (severity !== 'normal') return `color: ${SEVERITY_COLORS[severity]};`
-  if (pace?.status === 'over') return `color: ${SEVERITY_COLORS.warning};`
+  if (severity === 'critical') return `color: ${SEVERITY_COLORS.critical};`
+  if (pace?.status === 'under') return null
+  if (severity === 'warning' || pace?.status === 'over') return `color: ${SEVERITY_COLORS.warning};`
   return null
 }
 
@@ -142,14 +164,22 @@ const resetText = (limit: Limit, nowMs: number): string | null => {
   return clock === null ? `Resets in ${until}` : `Resets ${clock}`
 }
 
-const percentRow = (limit: Limit, styleClass: string, style: string | null): St.BoxLayout => {
+const percentRow = (
+  limit: Limit,
+  display: LimitDisplay,
+  styleClass: string,
+  style: string | null,
+): St.BoxLayout => {
   const row = new St.BoxLayout({ x_align: Clutter.ActorAlign.END })
-  row.add_child(label(formatPercent(limit.percent), styleClass, style))
+  row.add_child(label(formatPercent(Math.max(0, displayPercent(limit.percent, display))), styleClass, style))
+  const unit = label(display, `aiu-card-unit ${styleClass}-unit`)
+  unit.y_align = Clutter.ActorAlign.END
+  row.add_child(unit)
   const forecast = limit.forecast ?? null
   if (forecast !== null) {
     row.add_child(
       label(
-        `→ ${formatPercent(forecast.percent)}`,
+        `est. ${formatPercent(displayPercent(forecast.percent, display))} at reset`,
         `aiu-card-forecast aiu-forecast-${forecastBand(forecast.percent)}`,
       ),
     )
@@ -171,13 +201,14 @@ const tile = (provider: Provider): St.Bin =>
 
 export type CardOptions = {
   nowMs: number
+  display: LimitDisplay
   expanded: boolean
   onToggleDetails: () => void
   details: (box: St.BoxLayout) => void
 }
 
 export const providerCard = (provider: Provider, options: CardOptions): PopupMenu.PopupBaseMenuItem => {
-  const { nowMs } = options
+  const { nowMs, display } = options
   const color = providerColor(provider)
   const item = staticItem('aiu-card-item')
   const card = new St.BoxLayout({ vertical: true, x_expand: true, style_class: 'aiu-card' })
@@ -195,7 +226,7 @@ export const providerCard = (provider: Provider, options: CardOptions): PopupMen
   header.add_child(spacer())
   if (main !== undefined) {
     const right = new St.BoxLayout({ vertical: true, y_align: Clutter.ActorAlign.CENTER })
-    right.add_child(percentRow(main, 'aiu-card-big', `color: ${color};`))
+    right.add_child(percentRow(main, display, 'aiu-card-big', `color: ${color};`))
     const caption = [main.label.replace(/ \(.*\)$/, ''), resetText(main, nowMs)]
       .filter((part) => part !== null)
       .join(' · ')
@@ -207,12 +238,12 @@ export const providerCard = (provider: Provider, options: CardOptions): PopupMen
   card.add_child(header)
 
   if (main !== undefined) {
-    card.add_child(paceBar(main.percent, mainPace?.expected ?? null, main.forecast?.percent ?? null, color, 6))
+    card.add_child(paceBar(main, mainPace, display, color, 6))
     if (mainPace !== null) {
       card.add_child(label(paceText(mainPace, main, nowMs), 'aiu-card-pace', paceStyle(mainPace, main.percent)))
     }
   } else {
-    card.add_child(label('No usage limits reported.', 'aiu-card-sub'))
+    card.add_child(label('No limits reported', 'aiu-card-sub'))
   }
 
   for (const limit of others) {
@@ -221,9 +252,9 @@ export const providerCard = (provider: Provider, options: CardOptions): PopupMen
     const top = new St.BoxLayout()
     top.add_child(label(limit.label.replace(/ \(7 day\)$/, ''), 'aiu-card-limit-label'))
     top.add_child(spacer())
-    top.add_child(percentRow(limit, 'aiu-card-limit-percent', null))
+    top.add_child(percentRow(limit, display, 'aiu-card-limit-percent', null))
     block.add_child(top)
-    block.add_child(paceBar(limit.percent, pace?.expected ?? null, limit.forecast?.percent ?? null, color, 4))
+    block.add_child(paceBar(limit, pace, display, color, 4))
     const parts = [resetText(limit, nowMs), pace === null ? null : paceText(pace, limit, nowMs)]
     const caption = parts.filter((part) => part !== null).join(' · ')
     if (caption.length > 0) block.add_child(label(caption, 'aiu-card-sub', paceStyle(pace, limit.percent)))

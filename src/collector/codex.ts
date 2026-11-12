@@ -71,7 +71,7 @@ export const collectCodex = (
 
   const warnings = [...aggregate.warnings]
   if (limits.limits.length === 0) {
-    warnings.push('No rate-limit snapshot found — run Codex once to record one')
+    warnings.push('Run Codex once to record its limits')
   }
 
   return {

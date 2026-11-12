@@ -81,6 +81,17 @@
   font-weight: 800;
   font-feature-settings: "tnum";
 }
+.aiu-card-unit {
+  margin-left: 4px;
+  font-size: 0.86em;
+  opacity: 0.68;
+}
+.aiu-card-big-unit {
+  padding-bottom: 5px;
+}
+.aiu-card-limit-percent-unit {
+  padding-bottom: 1px;
+}
 .aiu-card-forecast {
   margin-left: 6px;
   font-size: 0.86em;

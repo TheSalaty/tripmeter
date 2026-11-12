@@ -29,3 +29,13 @@
 .aiu-forecast-over {
   color: #c30000;
 }
+
+.aiu-landing-low {
+  -aiu-landing-color: rgba(34, 34, 38, 0.78);
+}
+.aiu-landing-target {
+  -aiu-landing-color: #1b6b30;
+}
+.aiu-landing-high {
+  -aiu-landing-color: #905400;
+}

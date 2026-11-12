@@ -21,9 +21,15 @@ one icon and percentage per account in the top bar.
 have room to use more. Right of it, the line under the bar turns amber and tells you when the limit
 runs out at the current rate, e.g. `13% over pace · runs out at 21:18`.
 
-**Where the week lands.** Weekly bars carry a paler segment and a `→ 112%`: the figure at reset if
+**Where the week lands.** Weekly bars carry a paler segment and an `est. 112% at reset`: the figure at reset if
 your pace holds. It is weighted by your own weekday rhythm, so a quiet weekend ahead counts for
 less than a Tuesday. 85–95% at reset is the sweet spot.
+
+**Left or used.** Limits count down by default, like the usage pages of Claude and Codex: `74%`
+is what you have left, the bar drains, room to use more is a bar ending right of the tick, and
+the stretch of a weekly bar left of the gap is what the estimate leaves unused at reset.
+Switch *Show limits as* to *Percent used* in the settings to count up instead; the figures above
+are in that mode.
 
 **What it would have cost.** Click the cost line on a card to see your tokens priced at API list
 rates for the last 24 hours, 7 days or 30 days: by model, skill, subagent and MCP tool, plus what

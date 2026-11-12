@@ -20,8 +20,8 @@ export default class TripmeterPreferences extends ExtensionPreferences {
     const modes = ['percent', 'cost', 'icon']
     const panelMode = new Adw.ComboRow({
       title: 'Panel button shows',
-      subtitle: 'The tightest limit, the window’s cost, or the icon alone',
-      model: Gtk.StringList.new(['Limit %', 'Cost', 'Icon only']),
+      subtitle: 'Each account’s limit, the window’s cost, or the icon alone',
+      model: Gtk.StringList.new(['Limits', 'Cost', 'Icon only']),
     })
     panelMode.selected = Math.max(0, modes.indexOf(settings.get_string('panel-mode')))
     panelMode.connect('notify::selected', () => {
@@ -31,9 +31,9 @@ export default class TripmeterPreferences extends ExtensionPreferences {
 
     const sources = ['both', 'claude', 'codex']
     const panelSource = new Adw.ComboRow({
-      title: 'Limit percentage shows',
-      subtitle: 'Which enabled providers get a percentage in the panel',
-      model: Gtk.StringList.new(['All', 'Claude accounts', 'Codex']),
+      title: 'Limits in the panel',
+      subtitle: 'Which providers get a percentage next to their icon',
+      model: Gtk.StringList.new(['All providers', 'Claude only', 'Codex only']),
     })
     panelSource.selected = Math.max(0, sources.indexOf(settings.get_string('panel-limit-source')))
     panelSource.connect('notify::selected', () => {
@@ -41,6 +41,17 @@ export default class TripmeterPreferences extends ExtensionPreferences {
     })
     panel.add(panelSource)
 
+    const displays = ['left', 'used']
+    const limitDisplay = new Adw.ComboRow({
+      title: 'Show limits as',
+      subtitle: 'In the panel and in the menu',
+      model: Gtk.StringList.new(['Percent left', 'Percent used']),
+    })
+    limitDisplay.selected = Math.max(0, displays.indexOf(settings.get_string('limit-display')))
+    limitDisplay.connect('notify::selected', () => {
+      settings.set_string('limit-display', displays[limitDisplay.selected] ?? 'left')
+    })
+    panel.add(limitDisplay)
 
     const data = new Adw.PreferencesGroup({
       title: 'Collection',

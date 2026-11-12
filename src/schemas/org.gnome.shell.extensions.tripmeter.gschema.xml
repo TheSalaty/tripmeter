@@ -10,6 +10,10 @@
     <value nick="claude" value="1"/>
     <value nick="codex" value="2"/>
   </enum>
+  <enum id="org.gnome.shell.extensions.tripmeter.limit-display">
+    <value nick="left" value="0"/>
+    <value nick="used" value="1"/>
+  </enum>
 
   <schema id="org.gnome.shell.extensions.tripmeter"
           path="/org/gnome/shell/extensions/tripmeter/">
@@ -33,6 +37,11 @@
       <default>'both'</default>
       <summary>Which providers' limits the panel shows</summary>
       <description>Show Claude, Codex, or both when the panel mode is Limit percentage.</description>
+    </key>
+    <key name="limit-display" enum="org.gnome.shell.extensions.tripmeter.limit-display">
+      <default>'left'</default>
+      <summary>Whether limits count down or up</summary>
+      <description>Show how much of each limit is left, or how much is already used.</description>
     </key>
     <key name="providers" type="s">
       <default>'[]'</default>

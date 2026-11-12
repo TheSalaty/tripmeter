@@ -1,6 +1,7 @@
 export type ProviderKind = 'claude' | 'codex'
 
 export type PanelLimitSource = ProviderKind | 'both'
+export type LimitDisplay = 'left' | 'used'
 
 export type WindowDays = 1 | 7 | 30
 

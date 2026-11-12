@@ -4,7 +4,7 @@ import type Gio from 'gi://Gio'
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js'
 
 import { isWindowDays } from './lib/snapshot.js'
-import type { PanelLimitSource, WindowDays } from './lib/types.js'
+import type { LimitDisplay, PanelLimitSource, WindowDays } from './lib/types.js'
 import { CollectorRunner, loadCachedSnapshot, saveCachedSnapshot } from './runner.js'
 import { addToPanel, createIndicator, type UsageIndicatorInstance } from './ui/indicator.js'
 
@@ -29,15 +29,19 @@ export default class TripmeterExtension extends Extension {
       onOpenPreferences: () => this.openPreferences(),
     })
     this.indicator = indicator
-    indicator.setSettings(this.windowDays(), settings.get_string('panel-mode'), this.panelLimitSource())
+    const apply = (): void =>
+      indicator.setSettings(
+        this.windowDays(),
+        settings.get_string('panel-mode'),
+        this.panelLimitSource(),
+        this.limitDisplay(),
+      )
+    apply()
 
     const cached = loadCachedSnapshot()
     if (cached !== null) indicator.setSnapshot(cached)
 
     addToPanel(indicator, this.uuid)
-
-    const apply = (): void =>
-      indicator.setSettings(this.windowDays(), settings.get_string('panel-mode'), this.panelLimitSource())
 
     this.settingsHandlers = [
       settings.connect('changed::window-days', () => {
@@ -46,6 +50,7 @@ export default class TripmeterExtension extends Extension {
       }),
       settings.connect('changed::panel-mode', apply),
       settings.connect('changed::panel-limit-source', apply),
+      settings.connect('changed::limit-display', apply),
       settings.connect('changed::refresh-interval', () => this.restartTimer()),
       settings.connect('changed::providers', () => this.refresh(true)),
     ]
@@ -76,6 +81,10 @@ export default class TripmeterExtension extends Extension {
   private panelLimitSource(): PanelLimitSource {
     const source = this.settings?.get_string('panel-limit-source')
     return source === 'claude' || source === 'codex' || source === 'both' ? source : 'both'
+  }
+
+  private limitDisplay(): LimitDisplay {
+    return this.settings?.get_string('limit-display') === 'used' ? 'used' : 'left'
   }
 
   private restartTimer(): void {
