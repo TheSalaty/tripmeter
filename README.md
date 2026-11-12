@@ -1,14 +1,30 @@
+<p align="center">
+  <img src="docs/social-preview.png" alt="Tripmeter: Claude Code and Codex usage limits in the GNOME top bar, with one card per account showing session and weekly limits, pace and cost at API rates" width="860">
+</p>
+
 # Tripmeter
 
-Claude Code and Codex limits in the GNOME top bar, with a marker that tells you whether you are
-burning through the week or leaving quota on the table.
+[![Latest release](https://img.shields.io/github/v/release/TheSalaty/tripmeter)](https://github.com/TheSalaty/tripmeter/releases/latest)
+[![GNOME Shell 49 | 50](https://img.shields.io/badge/GNOME%20Shell-49%20%7C%2050-4a86cf)](#install)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
+A GNOME Shell extension that puts your **Claude Code and OpenAI Codex usage limits in the top
+bar**: the 5-hour session, the weekly limit, the per-model limits and when each one resets. A
+marker on every bar tells you whether you are burning through the week or leaving quota on the
+table, and a click shows what the same tokens would have cost at API rates.
+
+- Claude Code, Codex, or both, with one card per account
+- Several Claude accounts side by side (work and personal)
+- Pace and a weekly forecast, not just a percentage
+- Cost by model, skill, subagent and MCP tool
+- No API key, no helper CLI, no telemetry. It reads the files the CLIs already write
 
 <p align="center">
-  <img src="docs/panel.png" alt="Tripmeter in the top bar: one icon and percentage per account" width="300">
+  <img src="docs/panel.png" alt="Tripmeter in the GNOME top bar: one icon and percentage per Claude Code and Codex account" width="300">
 </p>
 
 <p align="center">
-  <img src="docs/menu.png" alt="Tripmeter menu with one card per account" width="420">
+  <img src="docs/menu.png" alt="Tripmeter menu with one card per account: two Claude Code accounts and one Codex account, each with limits, resets, pace and cost" width="420">
 </p>
 
 ## What it shows
@@ -120,6 +136,36 @@ The price list is in [`src/lib/pricing.ts`](src/lib/pricing.ts). To override it,
 
 The longest matching model prefix wins.
 
+## FAQ
+
+**How do I see my Claude Code usage limits on Linux without typing `/usage`?**
+Install Tripmeter. The top bar then shows the 5-hour session percentage for each account, and the
+menu has the weekly and per-model limits with their reset times. They are the same figures
+`/usage` reports inside Claude Code.
+
+**Does it show Codex limits too?**
+Yes. Codex's limit windows get their own card, read from the most recent Codex session file.
+Tripmeter works with Claude Code alone, Codex alone, or both.
+
+**Do I need an API key, `ccusage` or another helper?**
+No. Limits come from the usage call Claude Code itself makes, and tokens and cost come from the
+session files in `~/.claude` and `~/.codex`.
+
+**Can it track more than one Claude account?**
+Yes. Each `CLAUDE_CONFIG_DIR` is its own account with a name, a colour and its own card and
+top-bar figure.
+
+**Is the cost what I pay?**
+No. It is what the same tokens would cost at API list prices. A subscription is flat-rate, so
+read it as "what this plan is worth to me", not as a bill.
+
+**Is there something like CodexBar for GNOME?**
+CodexBar is a macOS menu bar app. Tripmeter is an independent project that covers the same need
+on GNOME Shell for Claude Code and Codex. It is GNOME only: no KDE Plasma, Waybar or macOS.
+
+**Does it work on Wayland?**
+Yes, on GNOME Shell 49 and 50.
+
 ## Fine print
 
 - The cost is what the same tokens would cost on the API. A subscription is flat-rate, so it is not
@@ -133,7 +179,12 @@ The longest matching model prefix wins.
   session files. Claude publishes no history, so Tripmeter records a daily figure as it runs, and
   the forecast gets better over the first two weeks. It is a projection, not a promise.
 
-Development notes are in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
+## Contributing
+
+Pull requests are welcome, and so are issues for bugs, wrong prices or a limit that reads
+differently from what `/usage` shows. [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) covers the build,
+the tests and how to look at the UI in a headless shell without touching your session. Run
+`npm test` before you open a PR.
 
 ## License
 

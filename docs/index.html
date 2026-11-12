@@ -3,15 +3,20 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Tripmeter — Claude Code &amp; Codex usage and cost in the GNOME panel</title>
-<meta name="description" content="A GNOME Shell extension showing your Claude Code and OpenAI Codex usage limits, when they reset, and what the same traffic would have cost at API rates — per model, per skill, per subagent and per MCP tool.">
+<title>Tripmeter: Claude Code &amp; Codex usage limits in the GNOME top bar</title>
+<meta name="description" content="GNOME Shell extension that shows Claude Code and OpenAI Codex usage limits in the top bar: 5-hour session, weekly and per-model limits, resets, pace, and what the tokens would have cost at API rates. Several accounts, no API key.">
 <link rel="canonical" href="https://thesalaty.github.io/tripmeter/">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Tripmeter — Claude Code &amp; Codex usage and cost in the GNOME panel">
-<meta property="og:description" content="GNOME Shell extension for Claude Code and OpenAI Codex: usage limits, resets, and what the traffic would have cost at API rates.">
-<meta property="og:image" content="https://thesalaty.github.io/tripmeter/menu.png">
+<meta property="og:title" content="Tripmeter: Claude Code &amp; Codex usage limits in the GNOME top bar">
+<meta property="og:description" content="Session, weekly and per-model limits for every account, with pace, a weekly forecast and cost at API rates. Reads the files the CLIs already write.">
+<meta property="og:site_name" content="Tripmeter">
+<meta property="og:image" content="https://thesalaty.github.io/tripmeter/social-preview.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="640">
+<meta property="og:image:alt" content="Tripmeter cards for two Claude Code accounts and one Codex account with limits, pace and cost">
 <meta property="og:url" content="https://thesalaty.github.io/tripmeter/">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://thesalaty.github.io/tripmeter/social-preview.png">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -20,14 +25,78 @@
   "alternateName": "Claude Code and Codex usage monitor for GNOME Shell",
   "applicationCategory": "DeveloperApplication",
   "operatingSystem": "Linux, GNOME Shell 49-50",
-  "description": "A GNOME Shell extension showing Claude Code and OpenAI Codex usage limits, when they reset, and what the same traffic would have cost at API rates, broken down per model, per skill, per subagent and per MCP tool.",
-  "softwareVersion": "1.0.1",
+  "description": "A GNOME Shell extension showing Claude Code and OpenAI Codex usage limits in the top bar: 5-hour session, weekly and per-model limits, when they reset, whether you are on pace, and what the same traffic would have cost at API rates, broken down per model, per skill, per subagent and per MCP tool.",
   "url": "https://thesalaty.github.io/tripmeter/",
+  "image": "https://thesalaty.github.io/tripmeter/social-preview.png",
   "downloadUrl": "https://github.com/TheSalaty/tripmeter/releases/latest",
   "codeRepository": "https://github.com/TheSalaty/tripmeter",
   "license": "https://opensource.org/licenses/MIT",
   "author": { "@type": "Person", "name": "TheSalaty" },
   "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "How do I see my Claude Code usage limits on Linux without typing /usage?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Install Tripmeter. The GNOME top bar then shows the 5-hour session percentage for each account, and the menu has the weekly and per-model limits with their reset times. They are the same figures /usage reports inside Claude Code."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does it show Codex limits too?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. Codex's limit windows get their own card, read from the most recent Codex session file. Tripmeter works with Claude Code alone, Codex alone, or both."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Do I need an API key, ccusage or another helper?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. Limits come from the usage call Claude Code itself makes, and tokens and cost come from the session files in ~/.claude and ~/.codex."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can it track more than one Claude account?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. Each CLAUDE_CONFIG_DIR is its own account with a name, a colour and its own card and top-bar figure."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is the cost what I pay?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. It is what the same tokens would cost at API list prices. A subscription is flat-rate, so it is not a bill."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is there something like CodexBar for GNOME?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "CodexBar is a macOS menu bar app. Tripmeter is an independent project that covers the same need on GNOME Shell for Claude Code and Codex. It is GNOME only: no KDE Plasma, Waybar or macOS."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does it work on Wayland?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, on GNOME Shell 49 and 50."
+      }
+    }
+  ]
 }
 </script>
 <style>
@@ -73,13 +142,19 @@
   th, td { text-align: left; padding: .5rem .6rem; border-bottom: 1px solid var(--line); white-space: nowrap; }
   th:first-child, td:first-child { white-space: normal; }
   th { color: var(--dim); font-weight: 600; }
+  dt { font-weight: 600; margin-top: 1rem; }
+  dd { margin: .2rem 0 0; }
+  .hero { display: block; margin: 0 0 2rem; }
+  .shots { display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-start; }
   .note { color: var(--dim); font-size: .9rem; }
   footer { margin-top: 3.5rem; padding-top: 1.25rem; border-top: 1px solid var(--line); color: var(--dim); font-size: .9rem; }
 </style>
 </head>
 <body>
 
-<h1>Tripmeter <span class="sub">Claude Code &amp; Codex usage limits and API-rate cost in the GNOME panel</span></h1>
+<img class="hero" src="social-preview.png" width="1280" height="640" alt="Tripmeter: cards for two Claude Code accounts and one Codex account with session and weekly limits, pace and cost at API rates">
+
+<h1>Tripmeter <span class="sub">Claude Code &amp; Codex usage limits, pace and API-rate cost in the GNOME top bar</span></h1>
 <p class="lede">A GNOME Shell extension for <strong>Claude Code</strong> and <strong>OpenAI Codex</strong>
 that answers both questions from the top panel: how much of your limits is left, and
 <strong>where the spend actually went</strong> — what the same traffic would have cost at API rates,
@@ -92,16 +167,19 @@ broken down per model, per skill, per subagent and per MCP tool.</p>
 already on your machine; nothing is sent anywhere. Tested on GNOME 49 and 50, Wayland and X11,
 Arch/Manjaro, Fedora and Ubuntu.</p>
 
-<p><img src="menu.png" alt="The Tripmeter menu showing Claude Code and Codex limits, resets and cost at API rates" width="420"></p>
+<p class="shots"><img src="menu.png" alt="The Tripmeter menu: two Claude Code accounts and one Codex account with limits, resets, pace and cost at API rates" width="330" height="713" loading="lazy">
+<img src="details.png" alt="A Tripmeter card with its cost details folded out: cost at API rates, saved by caching, cost per model" width="330" height="408" loading="lazy"></p>
 
 <h2>What it shows</h2>
 <ul>
-  <li><strong>Limits</strong> — every rolling limit with a bar: Claude's 5-hour session, weekly and
-    weekly-Opus quota, Codex's 5-hour and weekly quota. The same figures <code>/usage</code> reports
+  <li><strong>Limits</strong> — every rolling limit with a bar: Claude's 5-hour session, the weekly limit and
+    the per-model weekly limits; whatever windows Codex's plan has. The same figures <code>/usage</code> reports
     inside Claude Code.</li>
   <li><strong>Resets</strong> — how long until each limit refills.</li>
   <li><strong>Pace</strong> — a marker on every bar where an even spread would be by now, so you see
     whether there is room to use more or when the limit runs out at the current rate.</li>
+  <li><strong>Where the week lands</strong> — an estimate of the weekly figure at reset if your pace
+    holds, weighted by your own weekday rhythm.</li>
   <li><strong>Several accounts</strong> — each Claude Code config directory and Codex home as its own
     card, with a name, a colour and an on/off switch (or imported from T3 Code).</li>
   <li><strong>Cost at API rates</strong> — what the last 24 hours / 7 days / 30 days would have cost
@@ -152,6 +230,24 @@ this one starts at 49.</p>
 <p>What is here and nowhere else is the second half of the question: cost at API list prices for the
 last 24h / 7d / 30d, what prompt caching saved, and the split across models, skills, subagents and
 MCP tools. No helper CLI, no daemon — it reads the session files directly.</p>
+
+<h2>Questions</h2>
+<dl>
+  <dt>How do I see my Claude Code usage limits on Linux without typing /usage?</dt>
+  <dd>Install Tripmeter. The GNOME top bar then shows the 5-hour session percentage for each account, and the menu has the weekly and per-model limits with their reset times. They are the same figures /usage reports inside Claude Code.</dd>
+  <dt>Does it show Codex limits too?</dt>
+  <dd>Yes. Codex's limit windows get their own card, read from the most recent Codex session file. Tripmeter works with Claude Code alone, Codex alone, or both.</dd>
+  <dt>Do I need an API key, ccusage or another helper?</dt>
+  <dd>No. Limits come from the usage call Claude Code itself makes, and tokens and cost come from the session files in ~/.claude and ~/.codex.</dd>
+  <dt>Can it track more than one Claude account?</dt>
+  <dd>Yes. Each CLAUDE_CONFIG_DIR is its own account with a name, a colour and its own card and top-bar figure.</dd>
+  <dt>Is the cost what I pay?</dt>
+  <dd>No. It is what the same tokens would cost at API list prices. A subscription is flat-rate, so it is not a bill.</dd>
+  <dt>Is there something like CodexBar for GNOME?</dt>
+  <dd>CodexBar is a macOS menu bar app. Tripmeter is an independent project that covers the same need on GNOME Shell for Claude Code and Codex. It is GNOME only: no KDE Plasma, Waybar or macOS.</dd>
+  <dt>Does it work on Wayland?</dt>
+  <dd>Yes, on GNOME Shell 49 and 50.</dd>
+</dl>
 
 <footer>
 Source, settings and the pricing overrides:
