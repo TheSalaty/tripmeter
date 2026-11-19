@@ -25,6 +25,20 @@ test('the limits array is read with its scoped model name', () => {
   assert.equal(limits[2]?.percent, 2)
 })
 
+test('limits keep a fixed order no matter how full they are', () => {
+  const limits = parseUsage({
+    limits: [
+      { kind: 'weekly_scoped', percent: 100, scope: { model: { display_name: 'Fable' } } },
+      { kind: 'weekly_all', percent: 92 },
+      { kind: 'session', percent: 16 },
+    ],
+  })
+  assert.deepEqual(
+    limits.map((limit) => limit.label),
+    ['Session (5h)', 'Weekly (7 day)', 'Weekly Fable'],
+  )
+})
+
 test('an account still on the older response shape keeps its two headline limits', () => {
   const limits = parseUsage({
     limits: [],

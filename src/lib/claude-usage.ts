@@ -44,7 +44,8 @@ export const parseUsage = (payload: unknown): Limit[] => {
   const response = payload as UsageResponse
 
   if (Array.isArray(response.limits) && response.limits.length > 0) {
-    return response.limits
+    return [...response.limits]
+      .sort((a, b) => kindRank(a.kind) - kindRank(b.kind))
       .map((limit) => ({
         label: kindLabel(limit),
         percent: num(limit.percent),
@@ -53,7 +54,6 @@ export const parseUsage = (payload: unknown): Limit[] => {
         windowMinutes: windowMinutes(limit.kind),
         forecast: null,
       }))
-      .sort(byClaudePriority)
   }
 
   const legacy: Limit[] = []
@@ -70,7 +70,7 @@ export const parseUsage = (payload: unknown): Limit[] => {
   }
   add('Session (5h)', 300, response.five_hour)
   add('Weekly (7 day)', 10_080, response.seven_day)
-  return legacy.sort(byClaudePriority)
+  return legacy
 }
 
 const windowMinutes = (kind: string | undefined): number | null => {
@@ -78,10 +78,12 @@ const windowMinutes = (kind: string | undefined): number | null => {
   return kind !== undefined && kind.startsWith('weekly') ? 10_080 : null
 }
 
-const byPercentDesc = (a: Limit, b: Limit): number => b.percent - a.percent
-
-const byClaudePriority = (a: Limit, b: Limit): number =>
-  Number(b.label === 'Session (5h)') - Number(a.label === 'Session (5h)') || byPercentDesc(a, b)
+/** Fixed order: session, weekly, model-scoped weeklies, then anything else (stable within a kind). */
+const KIND_ORDER = ['session', 'weekly_all', 'weekly_scoped']
+const kindRank = (kind: string | undefined): number => {
+  const rank = KIND_ORDER.indexOf(kind ?? '')
+  return rank === -1 ? KIND_ORDER.length : rank
+}
 
 type ProfileResponse = {
   account?: { email?: string | null } | null
