@@ -5,7 +5,7 @@
 # Tripmeter
 
 [![Latest release](https://img.shields.io/github/v/release/TheSalaty/tripmeter)](https://github.com/TheSalaty/tripmeter/releases/latest)
-[![GNOME Shell 49 | 50](https://img.shields.io/badge/GNOME%20Shell-49%20%7C%2050-4a86cf)](#install)
+[![GNOME Shell 49 | 50 | 51](https://img.shields.io/badge/GNOME%20Shell-49%20%7C%2050%20%7C%2051-4a86cf)](#install)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 A GNOME Shell extension that puts your **Claude Code and OpenAI Codex usage limits in the top
@@ -63,7 +63,7 @@ Nothing leaves your machine. Tripmeter reads the session files the CLIs already 
 network request is the usage call Claude Code itself makes, sent with the token Claude Code already
 stored. You don't need an API key or a helper CLI, and there is no telemetry.
 
-GNOME Shell 49 and 50. Works with either CLI on its own or with both.
+GNOME Shell 49, 50 and 51. Works with either CLI on its own or with both.
 
 ## Install
 
@@ -164,7 +164,7 @@ CodexBar is a macOS menu bar app. Tripmeter is an independent project that cover
 on GNOME Shell for Claude Code and Codex. It is GNOME only: no KDE Plasma, Waybar or macOS.
 
 **Does it work on Wayland?**
-Yes, on GNOME Shell 49 and 50.
+Yes, on GNOME Shell 49, 50 and 51.
 
 ## Fine print
 
