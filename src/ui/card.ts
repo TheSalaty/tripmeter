@@ -211,7 +211,7 @@ export const providerCard = (provider: Provider, options: CardOptions): PopupMen
   const { nowMs, display } = options
   const color = providerColor(provider)
   const item = staticItem('aiu-card-item')
-  const card = new St.BoxLayout({ vertical: true, x_expand: true, style_class: 'aiu-card' })
+  const card = new St.BoxLayout({ orientation: Clutter.Orientation.VERTICAL, x_expand: true, style_class: 'aiu-card' })
   item.add_child(card)
 
   const [main, ...others] = provider.limits
@@ -219,13 +219,13 @@ export const providerCard = (provider: Provider, options: CardOptions): PopupMen
 
   const header = new St.BoxLayout({ style_class: 'aiu-card-header' })
   header.add_child(tile(provider))
-  const names = new St.BoxLayout({ vertical: true, y_align: Clutter.ActorAlign.CENTER })
+  const names = new St.BoxLayout({ orientation: Clutter.Orientation.VERTICAL, y_align: Clutter.ActorAlign.CENTER })
   names.add_child(label(provider.name, 'aiu-card-name'))
   if (provider.account.plan !== null) names.add_child(label(provider.account.plan, 'aiu-card-sub'))
   header.add_child(names)
   header.add_child(spacer())
   if (main !== undefined) {
-    const right = new St.BoxLayout({ vertical: true, y_align: Clutter.ActorAlign.CENTER })
+    const right = new St.BoxLayout({ orientation: Clutter.Orientation.VERTICAL, y_align: Clutter.ActorAlign.CENTER })
     right.add_child(percentRow(main, display, 'aiu-card-big', `color: ${color};`))
     const caption = [main.label.replace(/ \(.*\)$/, ''), resetText(main, nowMs)]
       .filter((part) => part !== null)
@@ -248,7 +248,7 @@ export const providerCard = (provider: Provider, options: CardOptions): PopupMen
 
   for (const limit of others) {
     const pace = paceFor(limit, nowMs)
-    const block = new St.BoxLayout({ vertical: true, style_class: 'aiu-card-limit' })
+    const block = new St.BoxLayout({ orientation: Clutter.Orientation.VERTICAL, style_class: 'aiu-card-limit' })
     const top = new St.BoxLayout()
     top.add_child(label(limit.label.replace(/ \(7 day\)$/, ''), 'aiu-card-limit-label'))
     top.add_child(spacer())
@@ -291,7 +291,7 @@ export const providerCard = (provider: Provider, options: CardOptions): PopupMen
   card.add_child(toggle)
 
   if (options.expanded) {
-    const details = new St.BoxLayout({ vertical: true, style_class: 'aiu-card-details' })
+    const details = new St.BoxLayout({ orientation: Clutter.Orientation.VERTICAL, style_class: 'aiu-card-details' })
     options.details(details)
     card.add_child(details)
   }

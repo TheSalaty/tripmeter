@@ -2,7 +2,7 @@
   "uuid": "tripmeter@thesalaty.github.io",
   "name": "Tripmeter Usage",
   "description": "AI usage tracker and Verbrauch monitor for Claude Code and OpenAI Codex: Claude and Codex usage and limits, token use, 5-hour and weekly quotas, resets and API-equivalent cost. Shows where the spend went, broken down per model, skill, subagent and MCP tool. Reads the session files already on your machine — no helper CLI, no API key, nothing leaves the machine. Detects which of the two CLIs is installed and works with either one alone.",
-  "shell-version": ["49", "50"],
+  "shell-version": ["49", "50", "51"],
   "settings-schema": "org.gnome.shell.extensions.tripmeter",
   "gettext-domain": "tripmeter",
   "url": "https://github.com/TheSalaty/tripmeter",
